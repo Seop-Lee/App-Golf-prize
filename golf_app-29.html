@@ -1,0 +1,2531 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0">
+<title>⛳ 일스클럽 쫄깃한판</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Firebase (실시간 공유용) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+  html { font-size: 18px; }
+  body { -webkit-tap-highlight-color: transparent; }
+  .btn-primary {
+    font-size: 22px; font-weight: 800;
+  }
+  .btn-secondary {
+    font-size: 20px; font-weight: 700;
+  }
+  input, select {
+    font-size: 20px !important;
+  }
+  ::-webkit-scrollbar { display: none; }
+</style>
+</head>
+<body class="bg-gray-100 text-gray-900">
+
+<!-- ================= 클럽 입장 화면 ================= -->
+<div id="roomGate" class="fixed inset-0 bg-green-900 z-50 flex items-center justify-center p-6">
+  <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+    <h1 class="text-2xl font-extrabold text-center mb-2">⛳ 일스클럽 입장</h1>
+    <p class="text-base text-gray-600 text-center mb-4">클럽 코드를 입력하면 등록된 회원과<br>지난 대회 결과를 그대로 불러옵니다.</p>
+    <input id="roomCodeInput" type="text" placeholder="예: 상록회"
+      class="w-full border-2 border-gray-300 rounded-xl px-3 py-4 text-lg mb-3 outline-none focus:border-green-600">
+    <button onclick="joinRoom()" class="btn-primary w-full bg-green-700 text-white py-4 rounded-xl active:bg-green-900">
+      입장하기
+    </button>
+    <p id="roomGateMsg" class="text-red-600 text-sm mt-3 text-center"></p>
+    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v30</p>
+  </div>
+</div>
+
+<!-- ================= 대회 선택 화면 ================= -->
+<div id="eventGate" class="fixed inset-0 bg-green-900 z-40 hidden flex items-center justify-center p-6">
+  <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl max-h-[90vh] overflow-y-auto">
+    <div class="flex justify-between items-center mb-2">
+      <h1 class="text-2xl font-extrabold">🏆 대회 선택</h1>
+      <button onclick="leaveRoom()" class="text-sm bg-gray-100 text-gray-700 px-2 py-1 rounded-lg font-bold">클럽 나가기</button>
+    </div>
+    <p class="text-base text-gray-600 mb-4">클럽: <b id="clubCodeLabel2"></b></p>
+
+    <div class="bg-green-50 border-2 border-green-300 rounded-xl p-3 mb-4">
+      <p class="text-base font-bold mb-2">➕ 새 대회 시작</p>
+      <input id="newEventTitle" type="text" placeholder="예: 8월 정기모임"
+        class="w-full border-2 border-gray-300 rounded-xl px-3 py-3 text-lg mb-2 outline-none focus:border-green-600">
+      <button id="createEventBtn" onclick="createEvent()" class="btn-secondary w-full bg-green-700 text-white py-3 rounded-xl active:bg-green-900">시작</button>
+      <p id="createEventMsg" class="text-sm mt-2 text-center"></p>
+    </div>
+
+    <p class="text-base font-bold mb-2">📋 지난 대회 목록</p>
+    <div id="eventList" class="space-y-2 mb-4"></div>
+
+    <button onclick="openStatsPanel()" class="btn-secondary w-full bg-indigo-700 text-white py-3 rounded-xl active:bg-indigo-900">
+      📊 기간별 집계 (상금왕 · 향상왕)
+    </button>
+  </div>
+</div>
+
+<!-- ================= 기간별 집계 화면 ================= -->
+<div id="statsPanel" class="fixed inset-0 bg-green-900 z-40 hidden flex items-center justify-center p-6">
+  <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl max-h-[90vh] overflow-y-auto">
+    <div class="flex justify-between items-center mb-3">
+      <h1 class="text-2xl font-extrabold">📊 기간별 집계</h1>
+      <button onclick="closeStatsPanel()" class="text-sm bg-gray-100 text-gray-700 px-2 py-1 rounded-lg font-bold">닫기</button>
+    </div>
+    <p class="text-sm text-gray-500 mb-3">기간 안의 모든 대회를 합산해 상금왕(총 상금)과 향상왕(핸디캡이 가장 많이 낮아진 회원)을 계산합니다.</p>
+
+    <div class="grid grid-cols-2 gap-2 mb-2">
+      <div>
+        <label class="text-sm text-gray-600 block mb-1">시작일</label>
+        <input id="statsStart" type="date" class="w-full border-2 border-gray-300 rounded-lg px-2 py-2 text-base outline-none">
+      </div>
+      <div>
+        <label class="text-sm text-gray-600 block mb-1">종료일</label>
+        <input id="statsEnd" type="date" class="w-full border-2 border-gray-300 rounded-lg px-2 py-2 text-base outline-none">
+      </div>
+    </div>
+    <button onclick="runPeriodStats()" class="btn-secondary w-full bg-indigo-700 text-white py-3 rounded-xl active:bg-indigo-900 mb-4">집계하기</button>
+
+    <div id="statsResult"></div>
+  </div>
+</div>
+
+<!-- ================= 행운상 룰렛 추첨 모달 ================= -->
+<div id="luckyRouletteModal" class="fixed inset-0 bg-black bg-opacity-80 z-50 hidden flex items-center justify-center p-6">
+  <div class="bg-white rounded-2xl p-6 w-full max-w-sm text-center shadow-xl">
+    <p class="text-lg font-bold mb-3">🎰 행운상 추첨 중...</p>
+    <div id="rouletteDisplay" class="text-5xl font-extrabold text-purple-700 py-10 bg-purple-50 rounded-xl mb-4">?</div>
+    <div id="rouletteResult" class="hidden">
+      <div id="rouletteWinnersList" class="space-y-3 mb-4"></div>
+      <button onclick="closeLuckyRoulette()" class="btn-primary w-full bg-purple-700 text-white py-3 rounded-xl active:bg-purple-900">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 모드 선택 화면 ================= -->
+<div id="modeGate" class="fixed inset-0 bg-green-900 z-40 hidden flex items-center justify-center p-6">
+  <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+    <div class="text-center text-6xl mb-2">🐶</div>
+    <h1 class="text-2xl font-extrabold text-center mb-2">뭘 하실 건가요?</h1>
+    <p id="modeGateEventTitle" class="text-base text-gray-600 text-center mb-6"></p>
+
+    <button onclick="enterModeGuarded('admin')" class="btn-primary w-full bg-green-700 text-white py-4 rounded-xl active:bg-green-900 mb-3">
+      🕵️ 주최측의 농간<br><span class="text-sm font-normal">(총무 모드) 비밀번호 필요 · 전체 관리</span>
+    </button>
+    <button onclick="enterModeGuarded('member')" class="btn-primary w-full bg-blue-600 text-white py-4 rounded-xl active:bg-blue-800 mb-3">
+      🙋 나는 몇 조? 몇 등? 얼마?<br><span class="text-sm font-normal">(회원 모드) 조편성·순위·상금 확인</span>
+    </button>
+    <button onclick="enterModeGuarded('captain')" class="btn-primary w-full bg-teal-600 text-white py-4 rounded-xl active:bg-teal-800">
+      🏠 우리 조 점수 입력<br><span class="text-sm font-normal">(방장 모드) 우리 조 핸디캡·스코어 입력</span>
+    </button>
+  </div>
+</div>
+
+<div id="appRoot" class="max-w-md mx-auto min-h-screen bg-gray-100 pb-10 hidden">
+
+  <!-- 헤더 -->
+  <header class="bg-green-800 text-white px-4 py-4 sticky top-0 z-20 shadow-lg">
+    <h1 class="text-2xl font-extrabold text-center">⛳ 일스클럽 쫄깃한판</h1>
+    <div class="flex justify-center items-center gap-2 mt-1 flex-wrap">
+      <span class="text-sm bg-green-700 px-2 py-1 rounded-lg">클럽: <b id="roomCodeLabel"></b></span>
+      <span class="text-sm bg-green-600 px-2 py-1 rounded-lg">대회: <b id="eventTitleLabel"></b></span>
+      <button onclick="changeEvent()" class="text-sm bg-white text-green-800 px-2 py-1 rounded-lg font-bold">대회 변경</button>
+    </div>
+    <div class="flex justify-center items-center gap-2 mt-1">
+      <span id="modeBadge" class="text-sm bg-yellow-400 text-gray-900 px-2 py-1 rounded-lg font-bold">🔑 총무 모드</span>
+      <button onclick="switchMode()" class="text-sm bg-white text-green-800 px-2 py-1 rounded-lg font-bold">모드 변경</button>
+    </div>
+  </header>
+
+  <!-- 탭 네비게이션 -->
+  <nav class="grid grid-cols-5 gap-1 p-2 bg-white sticky top-[76px] z-10 shadow">
+    <button onclick="showTab('members')" id="nav-members" class="tab-btn py-3 rounded-lg text-sm font-bold border-2">회원</button>
+    <button onclick="showTab('today')" id="nav-today" class="tab-btn py-3 rounded-lg text-sm font-bold border-2">참가자</button>
+    <button onclick="showTab('groups')" id="nav-groups" class="tab-btn py-3 rounded-lg text-sm font-bold border-2">조편성</button>
+    <button onclick="showTab('score')" id="nav-score" class="tab-btn py-3 rounded-lg text-sm font-bold border-2">스코어</button>
+    <button onclick="showTab('money')" id="nav-money" class="tab-btn py-3 rounded-lg text-sm font-bold border-2">정산</button>
+    <button onclick="showTab('myscore')" id="nav-myscore" class="tab-btn py-3 rounded-lg text-sm font-bold border-2 hidden">내정보</button>
+    <button onclick="showTab('groupscore')" id="nav-groupscore" class="tab-btn py-3 rounded-lg text-sm font-bold border-2 hidden">조스코어</button>
+  </nav>
+
+  <!-- 입력완료(잠금) 상태 바 -->
+  <div class="flex justify-between items-center px-4 py-2 bg-gray-800 text-white text-sm">
+    <span id="lockStatusText">✏️ 입력 가능 상태</span>
+    <button id="lockActionBtn" class="bg-white text-gray-800 px-3 py-1 rounded-lg font-bold">✅ 입력완료</button>
+  </div>
+
+  <main class="p-4 space-y-4">
+
+    <!-- ================= 탭1: 회원 관리 ================= -->
+    <section id="tab-members" class="space-y-4">
+      <div class="bg-white rounded-2xl p-4 shadow border-2 border-gray-200">
+        <h2 class="text-xl font-extrabold mb-1">👤 회원 등록</h2>
+        <p class="text-sm text-gray-500 mb-3">아이디는 조편성·스코어·정산 등 화면 곳곳에서 이름 대신 표시됩니다. 알아보기 쉬운 별명으로 입력해 주세요.</p>
+        <input id="newMemberId" type="text" placeholder="아이디 (별명)"
+          class="w-full border-2 border-gray-300 rounded-xl px-3 py-4 text-lg mb-2 focus:border-green-600 outline-none">
+        <input id="newMemberName" type="text" placeholder="이름 (실명)"
+          class="w-full border-2 border-gray-300 rounded-xl px-3 py-4 text-lg mb-2 focus:border-green-600 outline-none">
+        <button onclick="addMember()" class="btn-primary w-full bg-green-700 text-white py-4 rounded-xl active:bg-green-900">등록</button>
+      </div>
+
+      <div class="bg-white rounded-2xl p-4 shadow border-2 border-gray-200">
+        <h2 class="text-xl font-extrabold mb-3">등록된 회원 목록 (<span id="memberCount">0</span>명)</h2>
+        <div id="memberList" class="space-y-2"></div>
+      </div>
+    </section>
+
+    <!-- ================= 탭2: 오늘 참가자 ================= -->
+    <section id="tab-today" class="space-y-4 hidden">
+      <div class="bg-white rounded-2xl p-4 shadow border-2 border-gray-200">
+        <h2 class="text-xl font-extrabold mb-3">✅ 오늘 참가자 추가</h2>
+        <div class="flex items-center gap-2 mb-3">
+          <label class="text-base text-gray-600 whitespace-nowrap">1인당 참가비</label>
+          <input id="feeInput" type="text" inputmode="numeric" pattern="[0-9]*" value="5000"
+            oninput="updateFee(this.value)"
+            onfocus="this.select()"
+            class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-3 py-2 text-lg text-right outline-none focus:border-green-600">
+          <span class="text-lg font-bold">원</span>
+        </div>
+        <div class="flex gap-2">
+          <select id="memberSelect" class="flex-1 min-w-0 border-2 border-gray-300 rounded-xl px-3 py-4 text-lg outline-none">
+            <option value="">-- 회원 선택 --</option>
+          </select>
+          <button onclick="addParticipant()" class="btn-primary bg-green-700 text-white px-5 rounded-xl active:bg-green-900">추가</button>
+        </div>
+        <p class="text-sm text-gray-500 mt-2">※ 먼저 [회원] 탭에서 이름을 등록해 주세요.</p>
+      </div>
+
+      <div class="bg-white rounded-2xl p-4 shadow border-2 border-gray-200">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-xl font-extrabold">오늘 참가자 (<span id="todayCount">0</span>명)</h2>
+          <button onclick="clearToday()" class="text-red-600 font-bold text-base underline">전체 삭제</button>
+        </div>
+        <div id="todayList" class="space-y-3"></div>
+      </div>
+
+      <div class="bg-green-100 border-2 border-green-600 rounded-2xl p-4 text-center">
+        <p class="text-lg font-bold">참가비 총액</p>
+        <p class="text-3xl font-extrabold text-green-800" id="totalFeePreview">0원</p>
+      </div>
+    </section>
+
+    <!-- ================= 탭3: 조편성 ================= -->
+    <section id="tab-groups" class="space-y-4 hidden">
+      <div id="groupEditControls" class="bg-white rounded-2xl p-4 shadow border-2 border-gray-200 text-center">
+        <p class="text-base text-gray-600 mb-3">한 조당 최대 인원수를 선택하세요.<br>핸디캡을 고려해 자동으로 균등 배정합니다.</p>
+        <div class="grid grid-cols-3 gap-2 mb-3">
+          <button id="gs-3" onclick="setGroupSize(3)" class="group-size-btn py-3 rounded-xl text-lg font-bold border-2">3명</button>
+          <button id="gs-4" onclick="setGroupSize(4)" class="group-size-btn py-3 rounded-xl text-lg font-bold border-2">4명</button>
+          <button id="gs-5" onclick="setGroupSize(5)" class="group-size-btn py-3 rounded-xl text-lg font-bold border-2">5명</button>
+        </div>
+        <button id="autoGroupBtn" onclick="autoGroup()" class="btn-primary w-full bg-blue-700 text-white py-4 rounded-xl active:bg-blue-900">
+          🔀 조편성 시작
+        </button>
+        <p id="autoGroupMsg" class="text-sm mt-2"></p>
+      </div>
+
+      <div id="groupResult" class="space-y-4"></div>
+    </section>
+
+    <!-- ================= 탭4: 스코어 입력 ================= -->
+    <section id="tab-score" class="space-y-4 hidden">
+      <div class="bg-white rounded-2xl p-4 shadow border-2 border-gray-200">
+        <h2 class="text-xl font-extrabold mb-3">🏌️ 핸디반영 최종스코어 입력</h2>
+        <p class="text-sm text-gray-500 mb-3">각 조에서 찍어온 스코어카드 사진을 보고, 아래에 직접 숫자를 입력해 주세요.</p>
+        <div id="scoreList" class="space-y-3"></div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-4 shadow border-2 border-emerald-300">
+        <h2 class="text-xl font-extrabold mb-1">🎯 파3 홀 니어핀 대상자</h2>
+        <div class="flex items-center gap-2 mb-3">
+          <label class="text-base text-gray-600 whitespace-nowrap">파3 홀 개수</label>
+          <input id="par3CountInput" type="text" inputmode="numeric" pattern="[0-9]*"
+            class="w-20 border-2 border-gray-300 rounded-lg px-2 py-2 text-lg text-center outline-none"
+            oninput="updatePar3Count(this.value)"
+            onfocus="this.select()">
+        </div>
+        <div id="nearPinList" class="space-y-2"></div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-4 shadow border-2 border-yellow-400">
+        <h2 class="text-xl font-extrabold mb-1">🕳️ 홀인원</h2>
+        <p class="text-sm text-gray-500 mb-3">홀인원을 한 회원과 상금을 입력하세요. 여러 명도 가능합니다.</p>
+        <div id="holeInOneList" class="space-y-2 mb-3"></div>
+        <button onclick="addHoleInOne()" class="btn-secondary w-full bg-yellow-500 text-white py-3 rounded-xl active:bg-yellow-600">+ 홀인원 추가</button>
+      </div>
+    </section>
+
+    <!-- ================= 탭5: 정산 ================= -->
+    <section id="tab-money" class="space-y-4 hidden">
+      <div id="prizeRulesCard" class="bg-white rounded-2xl p-4 shadow border-2 border-indigo-300">
+        <h2 class="text-xl font-extrabold mb-3">🏆 상금 배분 규칙</h2>
+        <div id="prizeRulesForm"></div>
+      </div>
+
+      <div id="computeMoneyCard" class="bg-white rounded-2xl p-4 shadow border-2 border-gray-200">
+        <button onclick="computeMoney()" class="btn-primary w-full bg-orange-600 text-white py-4 rounded-xl active:bg-orange-800">
+          💰 정산 결과 계산
+        </button>
+      </div>
+
+      <div id="moneyResult" class="space-y-4"></div>
+    </section>
+
+    <!-- ================= 탭6: 내 스코어 입력 (선수 모드 전용) ================= -->
+    <section id="tab-myscore" class="space-y-4 hidden">
+      <div id="myEditLockedCard" class="bg-white rounded-2xl p-4 shadow border-2 border-orange-300 text-center">
+        <p class="text-base text-gray-600 mb-3">내 이름/아이디 수정, 핸디캡·스코어 입력은 비밀번호를 입력해야 가능합니다.</p>
+        <button onclick="unlockMemberEdit()" class="btn-primary w-full bg-orange-600 text-white py-4 rounded-xl active:bg-orange-800">
+          🔓 비밀번호 입력해서 내 정보 수정하기
+        </button>
+      </div>
+
+      <div id="myEditUnlockedCard" class="hidden space-y-4">
+        <div class="bg-white rounded-2xl p-4 shadow border-2 border-orange-300">
+          <h2 class="text-xl font-extrabold mb-3">📝 내 정보 / 최종스코어</h2>
+          <label class="text-base text-gray-600 block mb-1">본인 이름</label>
+          <select id="myPlayerSelect" onchange="chooseMyPlayer(this.value)"
+            class="w-full border-2 border-gray-300 rounded-xl px-3 py-4 text-lg mb-4 outline-none">
+            <option value="">-- 이름 선택 --</option>
+          </select>
+
+          <div id="myScoreBox" class="hidden">
+            <p id="myGroupInfo" class="text-base text-gray-600 mb-3"></p>
+
+            <label class="text-base text-gray-600 block mb-1">이름/아이디 수정</label>
+            <div class="flex gap-2 mb-4">
+              <input id="myIdInput" type="text" placeholder="아이디"
+                onchange="updateMyIdName()"
+                class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-3 py-2 text-lg outline-none">
+              <input id="myNameInput" type="text" placeholder="이름"
+                onchange="updateMyIdName()"
+                class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-3 py-2 text-lg outline-none">
+            </div>
+
+            <label class="text-base text-gray-600 block mb-1">이번 대회 내 핸디캡</label>
+            <div class="flex items-center gap-2 mb-4">
+              <button type="button" onclick="toggleMyHandicapSign()"
+                id="myHandicapSignBtn" class="w-11 h-11 flex-shrink-0 border-2 border-gray-300 rounded-lg text-xl font-bold text-gray-700">−</button>
+              <input id="myHandicapInput" type="text" inputmode="decimal" placeholder="0.0"
+                oninput="updateMyHandicap(this.value)" onfocus="this.select()"
+                class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-3 py-2 text-lg text-right outline-none">
+            </div>
+
+            <label class="text-base text-gray-600 block mb-1">핸디반영 최종스코어</label>
+            <input id="myScoreInput" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="예: 82"
+              oninput="updateMyScore(this.value)" onfocus="this.select()"
+              class="w-full border-2 border-gray-300 rounded-xl px-3 py-4 text-2xl text-center outline-none focus:border-orange-500">
+            <p id="myScoreSavedMsg" class="text-sm text-green-600 text-center mt-2"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 탭7: 우리 조 스코어 입력 (방장 모드 전용) ================= -->
+    <section id="tab-groupscore" class="space-y-4 hidden">
+      <div class="bg-white rounded-2xl p-4 shadow border-2 border-teal-300">
+        <h2 class="text-xl font-extrabold mb-3">👨‍👩‍👧‍👦 우리 조 스코어 입력</h2>
+        <label class="text-base text-gray-600 block mb-1">우리 조를 선택하세요</label>
+        <select id="myGroupSelect" onchange="chooseMyGroup(this.value)"
+          class="w-full border-2 border-gray-300 rounded-xl px-3 py-4 text-lg outline-none">
+          <option value="">-- 조 선택 --</option>
+        </select>
+      </div>
+
+      <div id="groupScoreList" class="space-y-3"></div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+/* ===================== Firebase 설정 =====================
+   아래 firebaseConfig 값을 본인의 Firebase 프로젝트 값으로 교체하세요.
+   (Firebase 콘솔 > 프로젝트 설정 > 내 앱 > SDK 설정 및 구성 에서 복사)
+============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyDuNqWcWvSY330C2qgq6eZJ4QLgcjXsaRo",
+  authDomain: "golfclubprize.firebaseapp.com",
+  projectId: "golfclubprize",
+  storageBucket: "golfclubprize.firebasestorage.app",
+  messagingSenderId: "331333671369",
+  appId: "1:331333671369:web:7fdc18ff71e9fcb6e3b018"
+};
+
+let feePerPerson = 5000; // 1인당 참가비 (편집 가능)
+
+function defaultPrizeRules(){
+  return {
+    overallPct: 50,   // 개인전 상금이 참가비 총액의 몇 %인지
+    groupPct: 30,     // 조별 경쟁 상금 비율
+    eventPct: 20,     // 니어핀 + 행운상 합계 비율
+    overallPlaces: 3, // 개인전 포상자 수
+    overallSplit: [50,30,20], // 개인전 등수별 비율(overallPct 안에서, 합 100)
+    groupPlaces: 2,   // 조별 경쟁에서 포상하는 조 개수 (다른 조와 핸디캡 기준 경쟁)
+    groupSplit: [60,40],      // 순위별 조 비율(groupPct 안에서, 합 100)
+    eventSplit: { nearPin: 50, lucky: 50 } // eventPct를 니어핀/행운상으로 나누는 비율(합 100)
+  };
+}
+let prizeRules = defaultPrizeRules();
+
+let members = [];
+let today = [];          // {name, handicap}
+let currentGroups = null;
+let luckyExcluded = [];
+let luckyWinners = null;
+let scores = {};         // { 이름: 최종타수 }
+let par3Count = 4;
+let nearPins = [];       // 홀별 니어핀 대상자 이름 배열 (길이 = par3Count)
+let holeInOnes = [];     // [{ name, prize }]
+let locked = false;      // 입력완료(잠금) 상태
+let luckyCount = 2;      // 행운상 추첨 인원수
+let groupPrizeOverride = {}; // { 그룹인덱스: 1인당금액 } 총무가 수동으로 고친 조별 상금
+let groupPrizeEditMode = false; // '상금 수정' 화면 열림/닫힘 (로컬 상태, 저장 안 함)
+let lockPin = '';        // 잠금 해제용 4자리 비밀번호 (2020은 항상 통하는 마스터 비밀번호)
+let memberEditUnlocked = false; // 회원 모드에서 '내 정보 수정' 잠금 해제 여부 (로컬 상태, 저장 안 함)
+
+function roundTo1000(x){ return Math.round(x/1000)*1000; }
+
+let db = null;
+let clubRef = null;      // golf_clubs/{clubCode} - 회원 목록(영구)
+let clubCode = null;
+let eventRef = null;     // golf_clubs/{clubCode}/events/{eventId} - 대회별 결과(영구 보관)
+let eventId = null;
+let clubUnsub = null;
+let eventUnsub = null;
+let eventsListUnsub = null;
+let applyingRemote = false; // 원격 데이터 반영 중 표시(불필요한 재전송 방지용)
+
+/* ===================== 클럽(회원, 영구) 입장/퇴장 ===================== */
+function initFirebase(){
+  if(db) return true;
+  if(firebaseConfig.apiKey.includes('여기에')){
+    document.getElementById('roomGateMsg').textContent =
+      'firebaseConfig가 아직 설정되지 않았습니다. 코드 상단의 firebaseConfig 값을 채워주세요.';
+    return false;
+  }
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+  return true;
+}
+
+function joinRoom(){
+  const input = document.getElementById('roomCodeInput');
+  const code = (input.value || '').trim();
+  if(!code){ document.getElementById('roomGateMsg').textContent = '클럽 코드를 입력해 주세요.'; return; }
+  if(!initFirebase()) return;
+
+  clubCode = code;
+  localStorage.setItem('golf_club_code', code);
+  clubRef = db.collection('golf_clubs').doc(code);
+  document.getElementById('roomCodeLabel').textContent = code;
+  document.getElementById('clubCodeLabel2').textContent = code;
+  document.getElementById('roomGate').classList.add('hidden');
+
+  attachClubListener();
+  loadEventsList();
+
+  // 이 기기에서 마지막으로 열었던 대회가 있으면 자동으로 다시 엽니다
+  const lastEvent = localStorage.getItem('golf_last_event_' + code);
+  if(lastEvent){
+    clubRef.collection('events').doc(lastEvent).get().then(doc=>{
+      if(doc.exists) openEvent(lastEvent, doc.data().title || '이름없는 대회');
+      else document.getElementById('eventGate').classList.remove('hidden');
+    }).catch(()=> document.getElementById('eventGate').classList.remove('hidden'));
+  } else {
+    document.getElementById('eventGate').classList.remove('hidden');
+  }
+}
+
+function leaveRoom(){
+  if(!confirm('클럽에서 나가시겠습니까? (회원·대회 데이터는 그대로 보관됩니다)')) return;
+  if(clubUnsub) clubUnsub();
+  if(eventUnsub) eventUnsub();
+  if(eventsListUnsub) eventsListUnsub();
+  localStorage.removeItem('golf_club_code');
+  if(clubCode) localStorage.removeItem('golf_last_event_' + clubCode);
+  clubRef = null; clubCode = null; eventRef = null; eventId = null;
+  members = []; today = []; currentGroups = null; luckyExcluded = []; luckyWinners = null;
+  scores = {}; par3Count = 4; nearPins = [];
+  document.getElementById('appRoot').classList.add('hidden');
+  document.getElementById('eventGate').classList.add('hidden');
+  document.getElementById('roomGate').classList.remove('hidden');
+  document.getElementById('roomCodeInput').value = '';
+}
+
+/* 회원 목록은 클럽 문서에 영구 저장 — 대회를 새로 만들어도 사라지지 않습니다 */
+function attachClubListener(){
+  clubUnsub = clubRef.onSnapshot(doc=>{
+    if(!doc.exists){
+      clubRef.set({ members: [] });
+      return;
+    }
+    members = doc.data().members || [];
+    renderMembers();
+  }, err=>{
+    console.error(err);
+    alert('클럽 정보를 불러오는 중 오류가 발생했습니다: ' + err.message);
+  });
+}
+
+function pushClubState(partial){
+  if(!clubRef) return;
+  clubRef.set(partial, { merge: true }).catch(err=>{
+    console.error(err);
+    alert('저장 중 오류가 발생했습니다: ' + err.message);
+  });
+}
+
+/* ===================== 대회(이벤트) 목록/생성/전환 ===================== */
+function loadEventsList(){
+  if(eventsListUnsub) eventsListUnsub();
+  eventsListUnsub = clubRef.collection('events').orderBy('createdAt', 'desc').onSnapshot(snap=>{
+    const box = document.getElementById('eventList');
+    if(snap.empty){
+      box.innerHTML = '<p class="text-gray-400 text-center py-3">아직 등록된 대회가 없습니다. 새 대회를 시작해 보세요.</p>';
+      return;
+    }
+    box.innerHTML = snap.docs.map(d=>{
+      const data = d.data();
+      const dateStr = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate().toLocaleDateString('ko-KR') : '';
+      const title = data.title || '이름없는 대회';
+      return `
+      <div class="flex gap-2">
+        <button onclick="openEvent('${d.id}', '${escapeAttr(title)}')"
+          class="flex-1 min-w-0 text-left bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 active:bg-gray-100">
+          <div class="text-lg font-bold">${escapeHtml(title)}</div>
+          <div class="text-sm text-gray-500">${dateStr} · 참가자 ${(data.today||[]).length}명</div>
+        </button>
+        <button onclick="deleteEventPrompt('${d.id}', '${escapeAttr(title)}')"
+          class="flex-shrink-0 w-12 bg-red-100 text-red-600 rounded-xl text-xl active:bg-red-200">🗑</button>
+      </div>`;
+    }).join('');
+  }, err=>{
+    console.error(err);
+  });
+}
+
+function deleteEventPrompt(eventId, title){
+  const pw = prompt(`'${title}' 대회를 삭제하려면 클럽 이름을 입력해 주세요.`);
+  if(pw === null) return;
+  if(pw !== clubCode){
+    alert('클럽 이름이 일치하지 않습니다. 삭제가 취소되었습니다.');
+    return;
+  }
+  if(!confirm(`정말로 '${title}' 대회를 완전히 삭제할까요?\n이 작업은 되돌릴 수 없습니다.`)) return;
+  clubRef.collection('events').doc(eventId).delete().then(()=>{
+    alert('삭제되었습니다.');
+  }).catch(err=>{
+    console.error(err);
+    alert('삭제 중 오류가 발생했습니다: ' + err.message);
+  });
+}
+
+/* ===================== 기간별 집계 (상금왕 / 향상왕) ===================== */
+function openStatsPanel(){
+  const today9 = new Date();
+  const yyyy = today9.getFullYear();
+  document.getElementById('statsStart').value = `${yyyy}-01-01`;
+  document.getElementById('statsEnd').value = today9.toISOString().slice(0,10);
+  document.getElementById('statsResult').innerHTML = '';
+  document.getElementById('statsPanel').classList.remove('hidden');
+}
+function closeStatsPanel(){
+  document.getElementById('statsPanel').classList.add('hidden');
+}
+
+/* 저장된 대회(data) 하나를 받아 회원별 상금 합계를 계산 (실시간 정산 로직과 동일한 규칙, 화면 렌더링 없이 계산만) */
+function calcMoneyForEvent(data){
+  const todayArr = data.today || [];
+  const memberPrize = {};
+  todayArr.forEach(p=> memberPrize[p.name] = 0);
+  if(todayArr.length === 0) return memberPrize;
+
+  const scoresObj = data.scores || {};
+  const groupsArr = data.groups ? data.groups.map(g => g.members || g) : null;
+  const rules = data.prizeRules || defaultPrizeRules();
+  const fee = (typeof data.feePerPerson === 'number') ? data.feePerPerson : 5000;
+  const nearPinsArr = data.nearPins || [];
+  const luckyArr = data.luckyWinners || null;
+  const holeInOnesArr = data.holeInOnes || [];
+
+  const totalPot = todayArr.length * fee;
+  const overallPrize = roundTo1000(totalPot * (rules.overallPct/100));
+  const groupPrizeTotal = roundTo1000(totalPot * (rules.groupPct/100));
+  const eventPrize = Math.max(0, totalPot - overallPrize - groupPrizeTotal);
+  const evSplit = rules.eventSplit || {nearPin:50, lucky:50};
+  const nearPinTotal = roundTo1000(eventPrize * ((evSplit.nearPin||0)/100));
+  const luckyTarget = eventPrize - nearPinTotal;
+
+  // 음수 핸디캡만 최종스코어에서 그만큼 빼고, 양수 핸디캡은 최종스코어에 영향을 주지 않습니다.
+  // 핸디캡 보정 규칙:
+  //  - 음수: 최종스코어에서 그만큼 뺌 (score + handicap, handicap이 음수이므로 감소)
+  //  - 0 이상 18 미만: 최종스코어에 영향 없음
+  //  - 18 이상: 클럽 최고핸디캡(18)을 초과하는 만큼은 인정하지 않고, 18만큼만 뺌
+  const netScore = p => {
+    if(scoresObj[p.name] == null) return null;
+    const h = p.handicap || 0;
+    if(h < 0) return scoresObj[p.name] + h;
+    if(h >= 18) return scoresObj[p.name] - 18;
+    return scoresObj[p.name];
+  };
+  const ranked = todayArr.filter(p=>scoresObj[p.name]!=null)
+    .map(p=>({ name:p.name, net: netScore(p) })).sort((a,b)=>a.net-b.net);
+  const overallSplit = rules.overallSplit || [50,30,20];
+  const overallPlaces = rules.overallPlaces || 3;
+  let actualOverallSum = 0;
+  ranked.slice(0, overallPlaces).forEach((w,i)=>{
+    let amt = roundTo1000(overallPrize * ((overallSplit[i]||0)/100));
+    if(actualOverallSum + amt > overallPrize) amt = Math.max(0, overallPrize - actualOverallSum);
+    actualOverallSum += amt;
+    memberPrize[w.name] = (memberPrize[w.name]||0) + amt;
+  });
+
+  const hioByGroup = {};
+  (holeInOnesArr||[]).forEach(h=>{
+    if(!h.name || !groupsArr) return;
+    groupsArr.forEach((g,gi)=>{ if(g.find(p=>p.name===h.name)) hioByGroup[gi] = (hioByGroup[gi]||0) + (h.prize||0); });
+  });
+  const groupsInfo = (groupsArr||[]).map((g,gi)=>{
+    const scored = g.filter(p=>scoresObj[p.name]!=null);
+    const avgNet = scored.length ? scored.reduce((s,p)=>s+netScore(p),0)/scored.length : null;
+    return { groupIndex: gi, members: g, avgNet, hio: hioByGroup[gi]||0 };
+  }).filter(x=> x.avgNet!=null || x.hio>0);
+  const hioGroups = groupsInfo.filter(x=>x.hio>0).sort((a,b)=>b.hio-a.hio);
+  const normalGroups = groupsInfo.filter(x=>x.hio===0).sort((a,b)=>a.avgNet-b.avgNet);
+  const groupRanking = [...hioGroups, ...normalGroups];
+  const gSplit = rules.groupSplit || [60,40];
+  const groupPlaces = rules.groupPlaces || 2;
+  const winningGroupsList2 = groupRanking.slice(0, groupPlaces);
+  const totalWeightedUnits2 = winningGroupsList2.reduce((s,gr,i)=> s + (gSplit[i]||0) * gr.members.length, 0);
+  const valuePerUnit2 = totalWeightedUnits2 > 0 ? groupPrizeTotal / totalWeightedUnits2 : 0;
+  let actualGroupSum = 0;
+  groupRanking.forEach((gr,i)=>{
+    if(i>=groupPlaces) return;
+    let perPerson = 0;
+    if(gr.members.length>0){
+      const flatAmt = groupPrizeTotal * ((gSplit[i]||0)/100);
+      const weightedAmt = (gSplit[i]||0) * valuePerUnit2 * gr.members.length;
+      const blendedAmt = (flatAmt + weightedAmt) / 2;
+      perPerson = roundTo1000(blendedAmt / gr.members.length);
+    }
+    let actualAmt = perPerson*gr.members.length;
+    if(actualGroupSum + actualAmt > groupPrizeTotal){
+      const remaining = Math.max(0, groupPrizeTotal - actualGroupSum);
+      perPerson = gr.members.length>0 ? Math.floor(remaining/gr.members.length/1000)*1000 : 0;
+      actualAmt = perPerson*gr.members.length;
+    }
+    actualGroupSum += actualAmt;
+    gr.members.forEach(p=> memberPrize[p.name] = (memberPrize[p.name]||0) + perPerson);
+  });
+
+  const validHoles = (nearPinsArr||[]).filter(x=>x).length;
+  const nearPinPerHole = validHoles>0 ? Math.floor(nearPinTotal/validHoles/1000)*1000 : 0;
+  const actualNearPinSum = nearPinPerHole*validHoles;
+  (nearPinsArr||[]).forEach(name=>{ if(name) memberPrize[name] = (memberPrize[name]||0) + nearPinPerHole; });
+
+  const roundingAdjustment = (overallPrize-actualOverallSum)+(groupPrizeTotal-actualGroupSum)+(nearPinTotal-actualNearPinSum);
+  const luckyTotal = luckyTarget + roundingAdjustment;
+  const luckyEach1 = roundTo1000(luckyTotal/2);
+  const luckyEach2 = luckyTotal - luckyEach1;
+  if(luckyArr){
+    if(luckyArr[0]) memberPrize[luckyArr[0]] = (memberPrize[luckyArr[0]]||0) + luckyEach1;
+    if(luckyArr[1]) memberPrize[luckyArr[1]] = (memberPrize[luckyArr[1]]||0) + luckyEach2;
+  }
+  // 홀인원 상금은 조별 순위 결정에만 쓰이고, 상금왕 집계에는 포함하지 않습니다.
+
+  return memberPrize;
+}
+
+async function runPeriodStats(){
+  const startVal = document.getElementById('statsStart').value;
+  const endVal = document.getElementById('statsEnd').value;
+  const resultBox = document.getElementById('statsResult');
+  if(!startVal || !endVal){ alert('시작일과 종료일을 선택해 주세요.'); return; }
+  const startDate = new Date(startVal + 'T00:00:00');
+  const endDate = new Date(endVal + 'T23:59:59');
+  if(startDate > endDate){ alert('시작일이 종료일보다 늦을 수 없습니다.'); return; }
+
+  resultBox.innerHTML = '<p class="text-gray-400 text-center py-4">집계 중...</p>';
+
+  try{
+    const snap = await clubRef.collection('events')
+      .where('createdAt', '>=', startDate)
+      .where('createdAt', '<=', endDate)
+      .orderBy('createdAt', 'asc')
+      .get();
+
+    if(snap.empty){
+      resultBox.innerHTML = '<p class="text-gray-400 text-center py-4">해당 기간에 대회 기록이 없습니다.</p>';
+      return;
+    }
+
+    const prizeTotals = {};
+    const handicapSeries = {};
+    const idByName = {};
+
+    snap.forEach(doc=>{
+      const data = doc.data();
+      const eventDate = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate() : new Date(0);
+
+      const memberPrize = calcMoneyForEvent(data);
+      Object.keys(memberPrize).forEach(name=>{
+        prizeTotals[name] = (prizeTotals[name]||0) + memberPrize[name];
+      });
+
+      (data.today||[]).forEach(p=>{
+        if(p.id) idByName[p.name] = p.id;
+        if(!handicapSeries[p.name]) handicapSeries[p.name] = [];
+        handicapSeries[p.name].push({ date: eventDate, handicap: p.handicap });
+      });
+    });
+
+    const prizeRanking = Object.keys(prizeTotals)
+      .map(name=>({ name, id: idByName[name], total: prizeTotals[name] }))
+      .filter(x=>x.total > 0)
+      .sort((a,b)=> b.total - a.total);
+
+    const improveRanking = Object.keys(handicapSeries)
+      .map(name=>{
+        const series = handicapSeries[name].slice().sort((a,b)=> a.date - b.date);
+        if(series.length < 2) return null;
+        const first = series[0].handicap;
+        const last = series[series.length-1].handicap;
+        return { name, id: idByName[name], first, last, improvement: first - last, count: series.length };
+      })
+      .filter(x=>x)
+      .sort((a,b)=> b.improvement - a.improvement);
+
+    renderStatsResult(prizeRanking, improveRanking, snap.size);
+  } catch(err){
+    console.error(err);
+    resultBox.innerHTML = `<p class="text-red-600 text-center py-4">집계 중 오류: ${err.message}</p>`;
+  }
+}
+
+function renderStatsResult(prizeRanking, improveRanking, eventCount){
+  const box = document.getElementById('statsResult');
+  box.innerHTML = `
+    <p class="text-sm text-gray-500 mb-3">집계 대상: 대회 ${eventCount}개</p>
+
+    <div class="bg-orange-50 border-2 border-orange-300 rounded-xl p-3 mb-4">
+      <p class="text-lg font-extrabold mb-2">💰 상금왕 순위 (합산 상금)</p>
+      ${prizeRanking.length ? prizeRanking.map((r,i)=>`
+        <div class="flex justify-between items-center py-1 ${i===0?'font-extrabold text-orange-700 text-lg':'text-base'}">
+          <span>${i+1}위 ${i===0?'👑 ':''}${escapeHtml(r.id||r.name)}</span>
+          <span>${r.total.toLocaleString()}원</span>
+        </div>`).join('') : '<p class="text-gray-400 text-center py-2">상금 기록이 없습니다.</p>'}
+    </div>
+
+    <div class="bg-blue-50 border-2 border-blue-300 rounded-xl p-3">
+      <p class="text-lg font-extrabold mb-2">📈 향상왕 순위 (핸디캡 감소량)</p>
+      <p class="text-xs text-gray-500 mb-2">기간 내 첫 대회 핸디캡 → 마지막 대회 핸디캡 기준 (최소 2회 이상 참가자만 집계)</p>
+      ${improveRanking.length ? improveRanking.map((r,i)=>`
+        <div class="flex justify-between items-center py-1 ${i===0?'font-extrabold text-blue-700 text-lg':'text-base'}">
+          <span>${i+1}위 ${i===0?'🚀 ':''}${escapeHtml(r.id||r.name)}</span>
+          <span>${r.first} → ${r.last} (${r.improvement>0?'-':'+'}${Math.abs(r.improvement).toFixed(1)})</span>
+        </div>`).join('') : '<p class="text-gray-400 text-center py-2">2회 이상 참가한 회원이 없습니다.</p>'}
+    </div>
+  `;
+}
+
+function createEvent(){
+  const btnGuard = document.getElementById('createEventBtn');
+  if(btnGuard && btnGuard.disabled) return; // 중복 실행 방지
+
+  const msg = document.getElementById('createEventMsg');
+  const setMsg = (text, isError)=>{
+    if(!msg) return;
+    msg.textContent = text || '';
+    msg.className = 'text-sm mt-2 text-center ' + (isError ? 'text-red-600 font-bold' : 'text-gray-500');
+  };
+  setMsg('버튼 클릭 감지됨...', false);
+
+  try{
+    if(!clubRef){
+      setMsg('클럽 연결이 끊어진 상태입니다. 화면을 새로고침한 뒤 클럽 코드로 다시 입장해 주세요.', true);
+      return;
+    }
+    const input = document.getElementById('newEventTitle');
+    const btn = document.getElementById('createEventBtn');
+    let title = (input.value || '').trim();
+    if(!title){
+      title = new Date().toLocaleDateString('ko-KR', { month:'long', day:'numeric' }) + ' 모임';
+    }
+
+    btn.disabled = true;
+    btn.textContent = '처리중...';
+    setMsg('저장 중입니다...', false);
+
+    const docRef = clubRef.collection('events').doc();
+    const writePromise = docRef.set({
+      title,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      today: [], groups: null, scores: {}, par3Count: 4, nearPins: [], luckyExcluded: [], luckyWinners: null,
+      groupSize: 4, feePerPerson: 5000, prizeRules: defaultPrizeRules(),
+      holeInOnes: [], locked: false, lockPin: '', luckyCount: 2, groupPrizeOverride: {}
+    });
+    const timeoutPromise = new Promise((_, reject)=>
+      setTimeout(()=> reject(new Error('네트워크 응답이 너무 오래 걸립니다. 인터넷 연결/Firestore 설정을 확인해 주세요.')), 8000)
+    );
+
+    Promise.race([writePromise, timeoutPromise]).then(()=>{
+      input.value = '';
+      btn.disabled = false;
+      btn.textContent = '시작';
+      setMsg('생성 완료! 이동 중...', false);
+      openEvent(docRef.id, title);
+    }).catch(err=>{
+      console.error(err);
+      btn.disabled = false;
+      btn.textContent = '시작';
+      setMsg('오류: ' + err.message, true);
+    });
+  } catch(err){
+    console.error(err);
+    setMsg('예상치 못한 오류: ' + err.message, true);
+    const btn = document.getElementById('createEventBtn');
+    if(btn){ btn.disabled = false; btn.textContent = '시작'; }
+  }
+}
+
+function openEvent(id, title){
+  eventId = id;
+  eventRef = clubRef.collection('events').doc(id);
+  localStorage.setItem('golf_last_event_' + clubCode, id);
+  pendingEventTitle = title;
+  document.getElementById('eventGate').classList.add('hidden');
+  document.getElementById('modeGateEventTitle').textContent = `대회: ${title}`;
+  document.getElementById('modeGate').classList.remove('hidden');
+}
+
+let pendingEventTitle = '';
+let userMode = 'admin'; // 'admin' | 'member' | 'captain'
+
+function enterModeGuarded(mode){
+  if(mode === 'admin'){
+    const pw = prompt('🕵️ 주최측의 농간(총무 모드) 비밀번호를 입력해 주세요.');
+    if(pw === null) return;
+    if(pw !== clubCode){ alert('비밀번호가 일치하지 않습니다.'); return; }
+  }
+  enterMode(mode);
+}
+
+function enterMode(mode){
+  userMode = mode;
+  localStorage.setItem('golf_user_mode', mode);
+  document.getElementById('eventTitleLabel').textContent = pendingEventTitle;
+  document.getElementById('modeGate').classList.add('hidden');
+  document.getElementById('appRoot').classList.remove('hidden');
+  memberEditUnlocked = false;
+  applyModeUI();
+  attachEventListener();
+  let defaultTab = 'members';
+  if(mode === 'member') defaultTab = 'groups';
+  if(mode === 'captain') defaultTab = 'groupscore';
+  showTab(defaultTab);
+}
+
+function applyModeUI(){
+  const isAdmin = (userMode === 'admin');
+  const isMember = (userMode === 'member');
+  const isCaptain = (userMode === 'captain');
+  const restricted = !isAdmin; // member, captain 모두 관리 기능은 숨김
+
+  // 회원/참가자/스코어 탭: 총무만 접근
+  ['members','today','score'].forEach(t=>{
+    const btn = document.getElementById('nav-'+t);
+    if(btn) btn.classList.toggle('hidden', restricted);
+  });
+  // 내정보 탭: 회원 모드만 접근
+  const myscoreBtn = document.getElementById('nav-myscore');
+  if(myscoreBtn) myscoreBtn.classList.toggle('hidden', !isMember);
+  // 조스코어 탭: 방장 모드만 접근
+  const groupscoreBtn = document.getElementById('nav-groupscore');
+  if(groupscoreBtn) groupscoreBtn.classList.toggle('hidden', !isCaptain);
+
+  const grid = document.querySelector('nav.grid');
+  if(grid){
+    if(isAdmin) grid.className = 'grid grid-cols-5 gap-1 p-2 bg-white sticky top-[76px] z-10 shadow';
+    else if(isMember || isCaptain) grid.className = 'grid grid-cols-3 gap-1 p-2 bg-white sticky top-[76px] z-10 shadow';
+    else grid.className = 'grid grid-cols-2 gap-1 p-2 bg-white sticky top-[76px] z-10 shadow';
+  }
+  // 잠금(입력완료) 바는 총무만 필요
+  const lockBar = document.getElementById('lockStatusText');
+  if(lockBar && lockBar.parentElement) lockBar.parentElement.classList.toggle('hidden', restricted);
+  const groupControls = document.getElementById('groupEditControls');
+  if(groupControls) groupControls.classList.toggle('hidden', restricted);
+  ['prizeRulesCard','computeMoneyCard'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.classList.toggle('hidden', restricted);
+  });
+  const modeBadge = document.getElementById('modeBadge');
+  if(modeBadge){
+    modeBadge.textContent = isAdmin ? '🕵️ 주최측의 농간' : (isCaptain ? '🏠 방장 모드' : '🙋 회원 모드');
+  }
+}
+
+function switchMode(){
+  document.getElementById('modeGateEventTitle').textContent = `대회: ${document.getElementById('eventTitleLabel').textContent}`;
+  document.getElementById('appRoot').classList.add('hidden');
+  document.getElementById('modeGate').classList.remove('hidden');
+}
+
+function changeEvent(){
+  if(eventUnsub) eventUnsub();
+  eventRef = null; eventId = null;
+  document.getElementById('appRoot').classList.add('hidden');
+  document.getElementById('eventGate').classList.remove('hidden');
+}
+
+let todayPushPending = false;
+let scorePushPending = false;
+let holeInOnePushPending = false;
+
+function attachEventListener(){
+  if(eventUnsub) eventUnsub();
+  eventUnsub = eventRef.onSnapshot(doc=>{
+    if(!doc.exists) return;
+    const data = doc.data();
+    applyingRemote = true;
+    // 핸디캡/스코어를 한창 입력 중일 때는, 아직 서버에 반영 안 된 이전 값이
+    // 돌아와서 방금 입력한 값을 덮어쓰지 않도록 건너뜁니다.
+    if(!todayPushPending) today = data.today || [];
+    currentGroups = (data.groups || null) ? data.groups.map(g => g.members || g) : null;
+    luckyExcluded = data.luckyExcluded || [];
+    luckyWinners = data.luckyWinners || null;
+    if(!scorePushPending) scores = data.scores || {};
+    par3Count = (typeof data.par3Count === 'number') ? data.par3Count : 4;
+    nearPins = data.nearPins || [];
+    groupSize = (typeof data.groupSize === 'number') ? data.groupSize : 4;
+    feePerPerson = (typeof data.feePerPerson === 'number') ? data.feePerPerson : 5000;
+    prizeRules = data.prizeRules || defaultPrizeRules();
+    holeInOnes = holeInOnePushPending ? holeInOnes : (data.holeInOnes || []);
+    locked = !!data.locked;
+    lockPin = data.lockPin || '';
+    luckyCount = (typeof data.luckyCount === 'number') ? data.luckyCount : 2;
+    groupPrizeOverride = data.groupPrizeOverride || {};
+
+    renderToday();
+    renderGroups();
+    renderGroupSizeButtons();
+    renderLockBar();
+    if(!document.getElementById('tab-score').classList.contains('hidden')){ renderScoreTab(); renderHoleInOneList(); }
+    if(!document.getElementById('tab-money').classList.contains('hidden')) renderPrizeRulesForm();
+    if(userMode === 'member'){ renderMyPlayerSelect(); showMyScoreBox(); }
+    if(userMode === 'captain'){ renderMyGroupSelect(); showGroupScoreList(); }
+    computeMoney();
+    applyingRemote = false;
+  }, err=>{
+    console.error(err);
+    alert('실시간 연결에 문제가 발생했습니다: ' + err.message);
+  });
+}
+
+function pushState(partial){
+  if(!eventRef) return Promise.resolve();
+  return eventRef.set(partial, { merge: true }).catch(err=>{
+    console.error(err);
+    alert('저장 중 오류가 발생했습니다: ' + err.message);
+  });
+}
+
+
+/* ===================== 탭 전환 ===================== */
+function showTab(name){
+  ['members','today','groups','score','money','myscore','groupscore'].forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('hidden', t!==name);
+    const btn = document.getElementById('nav-'+t);
+    if(t===name){
+      btn.classList.add('bg-green-700','text-white','border-green-700');
+      btn.classList.remove('bg-white','text-gray-700','border-gray-300');
+    } else {
+      btn.classList.remove('bg-green-700','text-white','border-green-700');
+      btn.classList.add('bg-white','text-gray-700','border-gray-300');
+    }
+  });
+  if(name==='score'){ renderScoreTab(); renderHoleInOneList(); }
+  if(name==='money'){ renderPrizeRulesForm(); }
+  if(name==='myscore'){ renderMyEditGate(); renderMyPlayerSelect(); showMyScoreBox(); }
+  if(name==='groupscore'){ renderMyGroupSelect(); showGroupScoreList(); }
+}
+
+/* ===================== 회원 관리 ===================== */
+// 구버전 데이터(단순 문자열 이름)와 신버전({id,name,handicap})을 모두 지원
+function normalizeMember(m){
+  if(typeof m === 'string') return { id: '', name: m, handicap: 0 };
+  return { handicap: 0, ...m };
+}
+
+function renderMembers(){
+  const list = document.getElementById('memberList');
+  document.getElementById('memberCount').textContent = members.length;
+  if(members.length===0){
+    list.innerHTML = '<p class="text-gray-400 text-center py-4">등록된 회원이 없습니다.</p>';
+  } else {
+    const active = document.activeElement;
+    const activeId = (active && active.id && active.id.startsWith('mhc-')) ? active.id : null;
+    const selStart = active ? active.selectionStart : null;
+    const selEnd = active ? active.selectionEnd : null;
+
+    list.innerHTML = members.map((raw,i)=>{
+      const m = normalizeMember(raw);
+      return `
+      <div class="flex items-center justify-between bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 gap-2">
+        <div class="flex-1 min-w-0">
+          <div class="text-lg font-bold">${m.id ? escapeHtml(m.id) : '(아이디 미등록)'}</div>
+          <div class="text-sm text-gray-500">${escapeHtml(m.name)}</div>
+        </div>
+        <button type="button" onclick="toggleMemberHandicapSign(${i})"
+          class="w-9 h-9 flex-shrink-0 border-2 border-gray-300 rounded-lg text-lg font-bold ${m.handicap<0 ? 'bg-red-100 text-red-600 border-red-300' : 'text-gray-700'}">−</button>
+        <input id="mhc-${i}" type="text" inputmode="decimal" value="${Math.abs(m.handicap||0) || ''}" placeholder="0.0"
+          oninput="updateMemberHandicap(${i}, this.value)" onfocus="this.select()"
+          class="w-16 border-2 border-gray-300 rounded-lg px-2 py-2 text-lg text-right outline-none">
+        <button onclick="deleteMember(${i})" class="text-red-600 font-bold text-base bg-red-100 px-3 py-2 rounded-lg active:bg-red-200 flex-shrink-0">삭제</button>
+      </div>`;
+    }).join('');
+
+    if(activeId){
+      const el = document.getElementById(activeId);
+      if(el){ el.focus(); try{ el.setSelectionRange(selStart, selEnd); }catch(e){} }
+    }
+  }
+  renderMemberSelect();
+}
+
+let memberHandicapDebounce = {};
+function updateMemberHandicap(i, val){
+  const m = normalizeMember(members[i]);
+  const v = parseFloat(val);
+  const magnitude = (isNaN(v) || v <= 0) ? 0 : Math.round(v*10)/10;
+  const sign = (m.handicap < 0) ? -1 : 1;
+  m.handicap = magnitude === 0 ? 0 : sign * magnitude;
+  members[i] = m;
+  clearTimeout(memberHandicapDebounce[i]);
+  memberHandicapDebounce[i] = setTimeout(()=> pushClubState({ members }), 400);
+}
+
+function toggleMemberHandicapSign(i){
+  const m = normalizeMember(members[i]);
+  m.handicap = Math.round((m.handicap * -1) * 10) / 10;
+  members[i] = m;
+  pushClubState({ members });
+  renderMembers();
+}
+
+function addMember(){
+  const idInput = document.getElementById('newMemberId');
+  const nameInput = document.getElementById('newMemberName');
+  const id = idInput.value.trim();
+  const name = nameInput.value.trim();
+  if(!id){ alert('아이디를 입력해 주세요.'); return; }
+  if(!name){ alert('이름을 입력해 주세요.'); return; }
+  if(members.some(m => normalizeMember(m).id === id)){ alert('이미 등록된 아이디입니다.'); return; }
+  if(members.some(m => normalizeMember(m).name === name)){ alert('이미 등록된 이름입니다.'); return; }
+  members.push({ id, name });
+  pushClubState({ members });
+  idInput.value = '';
+  nameInput.value = '';
+  renderMembers();
+}
+
+function deleteMember(i){
+  const m = normalizeMember(members[i]);
+  if(!confirm(`'${m.name}' 회원을 삭제할까요?`)) return;
+  members.splice(i,1);
+  pushClubState({ members });
+  renderMembers();
+}
+
+function renderMemberSelect(){
+  const sel = document.getElementById('memberSelect');
+  const normalized = members.map(normalizeMember);
+  const sorted = [...normalized].sort((a,b)=> (a.id||a.name).localeCompare(b.id||b.name, 'ko'));
+  sel.innerHTML = '<option value="">-- 회원 선택 --</option>' +
+    sorted.map(m=>`<option value="${escapeHtml(m.name)}">${m.id ? escapeHtml(m.id) : escapeHtml(m.name)}${m.id ? ` (${escapeHtml(m.name)})` : ''}</option>`).join('');
+}
+
+/* ===================== 오늘 참가자 ===================== */
+function addParticipant(){
+  if(checkLocked()) return;
+  const sel = document.getElementById('memberSelect');
+  const name = sel.value;
+  if(!name){ alert('회원을 선택해 주세요.'); return; }
+  if(today.find(p=>p.name===name)){ alert('이미 추가된 참가자입니다.'); return; }
+  const matched = members.map(normalizeMember).find(m=>m.name===name);
+  today.push({ name, id: matched ? matched.id : '', handicap: matched ? (matched.handicap || 0) : 0 });
+  pushState({ today });
+  renderToday();
+}
+
+let feeDebounce = null;
+function updateFee(val){
+  if(checkLocked()) return;
+  const v = parseInt(val, 10);
+  feePerPerson = isNaN(v) ? 0 : v;
+  document.getElementById('totalFeePreview').textContent = (today.length*feePerPerson).toLocaleString()+'원';
+  clearTimeout(feeDebounce);
+  feeDebounce = setTimeout(()=> pushState({ feePerPerson }), 400);
+}
+
+function removeParticipant(i){
+  if(checkLocked()) return;
+  today.splice(i,1);
+  pushState({ today });
+  renderToday();
+}
+
+let handicapDebounce = {};
+function updateHandicap(i, val){
+  if(checkLocked()) return;
+  const v = parseFloat(val);
+  const magnitude = (isNaN(v) || v <= 0) ? 0 : Math.round(v*10)/10;
+  const sign = (today[i].handicap < 0) ? -1 : 1;
+  today[i].handicap = magnitude === 0 ? 0 : sign * magnitude;
+  document.getElementById('totalFeePreview').textContent = (today.length*feePerPerson).toLocaleString()+'원';
+  clearTimeout(handicapDebounce[i]);
+  todayPushPending = true;
+  handicapDebounce[i] = setTimeout(()=>{
+    pushState({ today }).then(()=>{ todayPushPending = false; });
+    syncHandicapToMember(today[i].name, today[i].handicap);
+  }, 400);
+}
+
+function toggleHandicapSign(i){
+  if(checkLocked()) return;
+  today[i].handicap = Math.round((today[i].handicap * -1) * 10) / 10;
+  todayPushPending = true;
+  pushState({ today }).then(()=>{ todayPushPending = false; });
+  syncHandicapToMember(today[i].name, today[i].handicap);
+  renderToday();
+}
+
+// 대회 중 입력/수정된 참가자 핸디캡을 회원정보(클럽 레벨)에도 반영해서,
+// 다음 대회에 참석자로 추가할 때 최신 핸디캡이 자동으로 채워지도록 합니다.
+function syncHandicapToMember(name, handicap){
+  const idx = members.findIndex(raw => normalizeMember(raw).name === name);
+  if(idx === -1) return;
+  const m = normalizeMember(members[idx]);
+  m.handicap = handicap;
+  members[idx] = m;
+  pushClubState({ members });
+  if(!document.getElementById('tab-members').classList.contains('hidden')) renderMembers();
+}
+
+function clearToday(){
+  if(checkLocked()) return;
+  if(today.length===0) return;
+  if(!confirm('오늘 참가자 명단을 전부 삭제할까요?')) return;
+  today = [];
+  currentGroups = null;
+  scores = {};
+  nearPins = [];
+  luckyWinners = null;
+  pushState({ today, groups: null, scores: {}, nearPins: [], luckyWinners: null });
+  renderToday();
+  document.getElementById('groupResult').innerHTML = '';
+  document.getElementById('moneyResult').innerHTML = '';
+}
+
+function renderToday(){
+  const list = document.getElementById('todayList');
+  document.getElementById('todayCount').textContent = today.length;
+  document.getElementById('totalFeePreview').textContent = (today.length*feePerPerson).toLocaleString()+'원';
+  const feeInputEl = document.getElementById('feeInput');
+  if(feeInputEl && document.activeElement !== feeInputEl) feeInputEl.value = feePerPerson;
+
+  // 현재 포커스된 핸디캡 입력을 기억해서, 리렌더링 후 포커스/커서 위치 복원
+  const active = document.activeElement;
+  const activeId = (active && active.id && active.id.startsWith('hc-')) ? active.id : null;
+  const selStart = active ? active.selectionStart : null;
+  const selEnd = active ? active.selectionEnd : null;
+
+  if(today.length===0){
+    list.innerHTML = '<p class="text-gray-400 text-center py-4">추가된 참가자가 없습니다.</p>';
+    return;
+  }
+  list.innerHTML = today.map((p,i)=>`
+    <div class="bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3">
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-lg font-bold">${escapeHtml(p.id||p.name)}</span>
+        <button onclick="removeParticipant(${i})" class="text-red-600 font-bold text-base bg-red-100 px-3 py-2 rounded-lg active:bg-red-200">삭제</button>
+      </div>
+      <div class="flex items-center gap-2">
+        <label class="text-base text-gray-600 whitespace-nowrap">핸디캡</label>
+        <button type="button" onclick="toggleHandicapSign(${i})"
+          class="w-11 h-11 flex-shrink-0 border-2 border-gray-300 rounded-lg text-xl font-bold ${p.handicap<0 ? 'bg-red-100 text-red-600 border-red-300' : 'text-gray-700'} active:bg-gray-200">−</button>
+        <input id="hc-${i}" type="text" inputmode="decimal" value="${Math.abs(p.handicap || 0) || ''}"
+          placeholder="0.0"
+          oninput="updateHandicap(${i}, this.value)"
+          onfocus="this.select()"
+          class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-3 py-2 text-lg text-right outline-none focus:border-green-600">
+      </div>
+      <p class="text-xs text-gray-400 mt-1">※ 조편성은 이 값의 평균으로 균형을 맞춥니다. 최종스코어는 음수만 그 값만큼 빠지고, 18 이상은 18만 빠집니다(0~17은 영향 없음).</p>
+    </div>`).join('');
+
+  if(activeId){
+    const el = document.getElementById(activeId);
+    if(el){
+      el.focus();
+      try{ el.setSelectionRange(selStart, selEnd); }catch(e){}
+    }
+  }
+}
+
+/* ===================== 스코어 & 니어핀 입력 ===================== */
+function renderScoreTab(){
+  const box = document.getElementById('scoreList');
+  document.getElementById('par3CountInput').value = par3Count;
+
+  // 오늘 참가자 목록에 없는 이름은 정리
+  let changed = false;
+  Object.keys(scores).forEach(n=>{
+    if(!today.find(p=>p.name===n)){ delete scores[n]; changed = true; }
+  });
+  if(changed) pushState({ scores });
+
+  if(today.length===0){
+    box.innerHTML = '<p class="text-gray-400 text-center py-4">참가자를 먼저 추가해 주세요.</p>';
+  } else {
+    const active = document.activeElement;
+    const activeId = (active && active.id && active.id.startsWith('sc-')) ? active.id : null;
+    const selStart = active ? active.selectionStart : null;
+    const selEnd = active ? active.selectionEnd : null;
+
+    box.innerHTML = today.map(p=>`
+      <div class="flex justify-between items-center bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3">
+        <span class="text-lg font-bold">${escapeHtml(p.id||p.name)}</span>
+        <input id="sc-${escapeAttr(p.name)}" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="타수"
+          value="${scores[p.name] != null ? scores[p.name] : ''}"
+          oninput="updateScore('${escapeAttr(p.name)}', this.value)"
+          onfocus="this.select()"
+          class="w-24 border-2 border-gray-300 rounded-lg px-2 py-2 text-lg text-right outline-none focus:border-green-600">
+      </div>`).join('');
+
+    if(activeId){
+      const el = document.getElementById(activeId);
+      if(el){ el.focus(); try{ el.setSelectionRange(selStart, selEnd); }catch(e){} }
+    }
+  }
+
+  renderNearPinList();
+}
+
+let scoreDebounce = {};
+function updateScore(name, val){
+  if(checkLocked()) return;
+  const v = parseInt(val, 10);
+  if(val === '' || isNaN(v)) delete scores[name];
+  else scores[name] = v;
+  clearTimeout(scoreDebounce[name]);
+  scorePushPending = true;
+  scoreDebounce[name] = setTimeout(()=>{
+    pushState({ scores }).then(()=>{ scorePushPending = false; });
+  }, 400);
+}
+
+/* ===================== 회원 모드: 내 정보 수정 잠금해제 + 이름/아이디/핸디캡/스코어 ===================== */
+let myPlayerName = null;
+
+function renderMyEditGate(){
+  const lockedCard = document.getElementById('myEditLockedCard');
+  const unlockedCard = document.getElementById('myEditUnlockedCard');
+  if(!lockedCard || !unlockedCard) return;
+  lockedCard.classList.toggle('hidden', memberEditUnlocked);
+  unlockedCard.classList.toggle('hidden', !memberEditUnlocked);
+}
+
+function unlockMemberEdit(){
+  const pw = prompt('비밀번호(클럽 이름)를 입력해 주세요.');
+  if(pw === null) return;
+  if(pw !== clubCode){
+    alert('비밀번호가 일치하지 않습니다.');
+    return;
+  }
+  memberEditUnlocked = true;
+  renderMyEditGate();
+  renderMyPlayerSelect();
+  showMyScoreBox();
+}
+
+function renderMyPlayerSelect(){
+  const sel = document.getElementById('myPlayerSelect');
+  if(!sel) return;
+  const sorted = [...today].sort((a,b)=> a.name.localeCompare(b.name, 'ko'));
+  sel.innerHTML = '<option value="">-- 이름 선택 --</option>' +
+    sorted.map(p=>`<option value="${escapeHtml(p.name)}" ${myPlayerName===p.name?'selected':''}>${escapeHtml(p.id||p.name)}</option>`).join('');
+
+  const saved = eventId ? localStorage.getItem('golf_player_' + eventId) : null;
+  if(!myPlayerName && saved && today.find(p=>p.name===saved)){
+    myPlayerName = saved;
+    sel.value = saved;
+  }
+  if(myPlayerName) showMyScoreBox();
+}
+
+function chooseMyPlayer(name){
+  myPlayerName = name || null;
+  if(myPlayerName && eventId) localStorage.setItem('golf_player_' + eventId, myPlayerName);
+  showMyScoreBox();
+}
+
+function showMyScoreBox(){
+  const box = document.getElementById('myScoreBox');
+  if(!box) return;
+  if(!memberEditUnlocked || !myPlayerName){ box.classList.add('hidden'); return; }
+  box.classList.remove('hidden');
+
+  const p = today.find(t=>t.name===myPlayerName);
+  if(!p) return;
+
+  const groupInfo = document.getElementById('myGroupInfo');
+  let groupText = '조편성 결과가 아직 없습니다.';
+  if(currentGroups){
+    const gi = currentGroups.findIndex(g=>g.find(x=>x.name===myPlayerName));
+    if(gi >= 0) groupText = `${gi+1}조 입니다.`;
+  }
+  groupInfo.textContent = groupText;
+
+  const idInput = document.getElementById('myIdInput');
+  const nameInput = document.getElementById('myNameInput');
+  if(document.activeElement !== idInput) idInput.value = p.id || '';
+  if(document.activeElement !== nameInput) nameInput.value = p.name || '';
+
+  const hcInput = document.getElementById('myHandicapInput');
+  const hcBtn = document.getElementById('myHandicapSignBtn');
+  if(document.activeElement !== hcInput) hcInput.value = Math.abs(p.handicap||0) || '';
+  if(hcBtn) hcBtn.className = 'w-11 h-11 flex-shrink-0 border-2 border-gray-300 rounded-lg text-xl font-bold ' + (p.handicap<0 ? 'bg-red-100 text-red-600 border-red-300' : 'text-gray-700');
+
+  const input = document.getElementById('myScoreInput');
+  if(document.activeElement !== input){
+    input.value = (scores[myPlayerName] != null) ? scores[myPlayerName] : '';
+  }
+}
+
+function updateMyIdName(){
+  if(locked){ alert('🔒 총무가 입력을 완료(잠금)한 상태입니다. 수정이 필요하면 총무에게 요청해 주세요.'); showMyScoreBox(); return; }
+  if(!myPlayerName) return;
+  const idx = today.findIndex(p=>p.name===myPlayerName);
+  if(idx===-1) return;
+  const oldName = myPlayerName;
+  const newId = document.getElementById('myIdInput').value.trim();
+  const newName = document.getElementById('myNameInput').value.trim() || oldName;
+
+  if(newName !== oldName && today.some((p,pi)=> pi!==idx && p.name===newName)){
+    alert('이미 사용 중인 이름입니다.');
+    document.getElementById('myNameInput').value = oldName;
+    return;
+  }
+
+  today[idx].id = newId;
+  if(newName !== oldName){
+    today[idx].name = newName;
+    if(scores[oldName] != null){ scores[newName] = scores[oldName]; delete scores[oldName]; }
+    nearPins = nearPins.map(n => n===oldName ? newName : n);
+    luckyExcluded = luckyExcluded.map(n => n===oldName ? newName : n);
+    if(luckyWinners) luckyWinners = luckyWinners.map(n => n===oldName ? newName : n);
+    holeInOnes.forEach(h=>{ if(h.name===oldName) h.name = newName; });
+    myPlayerName = newName;
+    if(eventId) localStorage.setItem('golf_player_' + eventId, newName);
+  }
+
+  const midx = members.findIndex(raw => normalizeMember(raw).name === oldName);
+  if(midx !== -1){
+    const m = normalizeMember(members[midx]);
+    m.id = newId;
+    m.name = newName;
+    members[midx] = m;
+    pushClubState({ members });
+  }
+
+  pushState({ today, scores, nearPins, luckyExcluded, luckyWinners, holeInOnes });
+  renderMyPlayerSelect();
+  showMyScoreBox();
+}
+
+let myHandicapDebounce = null;
+function updateMyHandicap(val){
+  if(locked){ alert('🔒 총무가 입력을 완료(잠금)한 상태입니다. 수정이 필요하면 총무에게 요청해 주세요.'); showMyScoreBox(); return; }
+  if(!myPlayerName) return;
+  const idx = today.findIndex(p=>p.name===myPlayerName);
+  if(idx===-1) return;
+  const v = parseFloat(val);
+  const magnitude = (isNaN(v) || v <= 0) ? 0 : Math.round(v*10)/10;
+  const sign = (today[idx].handicap < 0) ? -1 : 1;
+  today[idx].handicap = magnitude === 0 ? 0 : sign * magnitude;
+  clearTimeout(myHandicapDebounce);
+  todayPushPending = true;
+  myHandicapDebounce = setTimeout(()=>{
+    pushState({ today }).then(()=>{ todayPushPending = false; });
+    syncHandicapToMember(myPlayerName, today[idx].handicap);
+  }, 400);
+}
+
+function toggleMyHandicapSign(){
+  if(locked){ alert('🔒 총무가 입력을 완료(잠금)한 상태입니다. 수정이 필요하면 총무에게 요청해 주세요.'); return; }
+  if(!myPlayerName) return;
+  const idx = today.findIndex(p=>p.name===myPlayerName);
+  if(idx===-1) return;
+  today[idx].handicap = Math.round((today[idx].handicap * -1) * 10) / 10;
+  todayPushPending = true;
+  pushState({ today }).then(()=>{ todayPushPending = false; });
+  syncHandicapToMember(myPlayerName, today[idx].handicap);
+  showMyScoreBox();
+}
+
+function updateMyScore(val){
+  if(locked){
+    alert('🔒 총무가 입력을 완료(잠금)한 상태입니다. 수정이 필요하면 총무에게 요청해 주세요.');
+    return;
+  }
+  if(!myPlayerName) return;
+  const v = parseInt(val, 10);
+  if(val === '' || isNaN(v)) delete scores[myPlayerName];
+  else scores[myPlayerName] = v;
+
+  const msgEl = document.getElementById('myScoreSavedMsg');
+  if(msgEl) msgEl.textContent = '저장 중...';
+
+  clearTimeout(scoreDebounce[myPlayerName]);
+  scorePushPending = true;
+  scoreDebounce[myPlayerName] = setTimeout(()=>{
+    pushState({ scores }).then(()=>{
+      scorePushPending = false;
+      if(msgEl) msgEl.textContent = '✅ 저장되었습니다.';
+    });
+  }, 400);
+}
+
+/* ===================== 조장 모드: 우리 조 전체 스코어 입력 ===================== */
+let myGroupIndex = null;
+
+function renderMyGroupSelect(){
+  const sel = document.getElementById('myGroupSelect');
+  if(!sel) return;
+  if(!currentGroups || currentGroups.length===0){
+    sel.innerHTML = '<option value="">-- 아직 조편성 전입니다 --</option>';
+    return;
+  }
+  sel.innerHTML = '<option value="">-- 조 선택 --</option>' +
+    currentGroups.map((g,gi)=>`<option value="${gi}" ${myGroupIndex===gi?'selected':''}>${gi+1}조 (${g.map(p=>p.id||p.name).join(', ')})</option>`).join('');
+
+  const saved = eventId ? localStorage.getItem('golf_captain_group_' + eventId) : null;
+  if(myGroupIndex===null && saved!==null && currentGroups[parseInt(saved,10)]){
+    myGroupIndex = parseInt(saved,10);
+    sel.value = myGroupIndex;
+  }
+}
+
+function chooseMyGroup(val){
+  myGroupIndex = (val === '') ? null : parseInt(val,10);
+  if(myGroupIndex!==null && eventId) localStorage.setItem('golf_captain_group_' + eventId, myGroupIndex);
+  showGroupScoreList();
+}
+
+function showGroupScoreList(){
+  const box = document.getElementById('groupScoreList');
+  if(!box) return;
+  if(myGroupIndex===null || !currentGroups || !currentGroups[myGroupIndex]){
+    box.innerHTML = '';
+    return;
+  }
+  const group = currentGroups[myGroupIndex];
+
+  const active = document.activeElement;
+  const activeId = (active && active.id && active.id.startsWith('gsc-')) ? active.id : null;
+  const selStart = active ? active.selectionStart : null;
+  const selEnd = active ? active.selectionEnd : null;
+
+  box.innerHTML = group.map(p=>`
+    <div class="bg-white rounded-2xl p-4 shadow border-2 border-teal-200">
+      <p class="text-xl font-extrabold mb-2">${escapeHtml(p.id||p.name)}</p>
+
+      <label class="text-base text-gray-600 block mb-1">핸디캡</label>
+      <div class="flex items-center gap-2 mb-3">
+        <button type="button" onclick="toggleGroupMemberHandicapSign('${escapeAttr(p.name)}')"
+          class="w-11 h-11 flex-shrink-0 border-2 border-gray-300 rounded-lg text-xl font-bold ${p.handicap<0 ? 'bg-red-100 text-red-600 border-red-300' : 'text-gray-700'}">−</button>
+        <input id="ghc-${escapeAttr(p.name)}" type="text" inputmode="decimal" placeholder="0.0"
+          value="${Math.abs(p.handicap||0) || ''}"
+          oninput="updateGroupMemberHandicap('${escapeAttr(p.name)}', this.value)" onfocus="this.select()"
+          class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-3 py-2 text-lg text-right outline-none">
+      </div>
+
+      <label class="text-base text-gray-600 block mb-1">핸디반영 최종스코어</label>
+      <input id="gsc-${escapeAttr(p.name)}" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="예: 85"
+        value="${scores[p.name] != null ? scores[p.name] : ''}"
+        oninput="updateGroupMemberScore('${escapeAttr(p.name)}', this.value)" onfocus="this.select()"
+        class="w-full border-2 border-gray-300 rounded-xl px-3 py-4 text-2xl text-center outline-none focus:border-teal-500">
+    </div>`).join('') +
+    `<p id="groupScoreSavedMsg" class="text-sm text-green-600 text-center"></p>`;
+
+  if(activeId){
+    const el = document.getElementById(activeId);
+    if(el){ el.focus(); try{ el.setSelectionRange(selStart, selEnd); }catch(e){} }
+  }
+}
+
+let groupHandicapDebounce = {};
+function updateGroupMemberHandicap(name, val){
+  if(locked){
+    alert('🔒 총무가 입력을 완료(잠금)한 상태입니다. 수정이 필요하면 총무에게 요청해 주세요.');
+    return;
+  }
+  const idx = today.findIndex(p=>p.name===name);
+  if(idx===-1) return;
+  const v = parseFloat(val);
+  const magnitude = (isNaN(v) || v <= 0) ? 0 : Math.round(v*10)/10;
+  const sign = (today[idx].handicap < 0) ? -1 : 1;
+  today[idx].handicap = magnitude === 0 ? 0 : sign * magnitude;
+  clearTimeout(groupHandicapDebounce[name]);
+  todayPushPending = true;
+  groupHandicapDebounce[name] = setTimeout(()=>{
+    pushState({ today }).then(()=>{ todayPushPending = false; });
+    syncHandicapToMember(name, today[idx].handicap);
+  }, 400);
+}
+
+function toggleGroupMemberHandicapSign(name){
+  if(locked){
+    alert('🔒 총무가 입력을 완료(잠금)한 상태입니다. 수정이 필요하면 총무에게 요청해 주세요.');
+    return;
+  }
+  const idx = today.findIndex(p=>p.name===name);
+  if(idx===-1) return;
+  today[idx].handicap = Math.round((today[idx].handicap * -1) * 10) / 10;
+  todayPushPending = true;
+  pushState({ today }).then(()=>{ todayPushPending = false; });
+  syncHandicapToMember(name, today[idx].handicap);
+  showGroupScoreList();
+}
+
+function updateGroupMemberScore(name, val){
+  if(locked){
+    alert('🔒 총무가 입력을 완료(잠금)한 상태입니다. 수정이 필요하면 총무에게 요청해 주세요.');
+    return;
+  }
+  const v = parseInt(val, 10);
+  if(val === '' || isNaN(v)) delete scores[name];
+  else scores[name] = v;
+
+  const msgEl = document.getElementById('groupScoreSavedMsg');
+  if(msgEl) msgEl.textContent = '저장 중...';
+
+  clearTimeout(scoreDebounce[name]);
+  scorePushPending = true;
+  scoreDebounce[name] = setTimeout(()=>{
+    pushState({ scores }).then(()=>{
+      scorePushPending = false;
+      if(msgEl) msgEl.textContent = '✅ 저장되었습니다.';
+    });
+  }, 400);
+}
+
+function updatePar3Count(val){
+  if(checkLocked()) return;
+  let n = parseInt(val, 10);
+  if(isNaN(n) || n < 0) n = 0;
+  if(n > 10) n = 10;
+  par3Count = n;
+  const arr = [];
+  for(let i=0;i<n;i++) arr.push(nearPins[i] || '');
+  nearPins = arr;
+  pushState({ par3Count, nearPins });
+  renderNearPinList();
+}
+
+function renderNearPinList(){
+  const box = document.getElementById('nearPinList');
+  if(!box) return;
+  if(par3Count === 0){
+    box.innerHTML = '<p class="text-gray-400 text-center py-2">파3 홀 개수를 입력해 주세요.</p>';
+    return;
+  }
+  if(today.length===0){
+    box.innerHTML = '<p class="text-gray-400 text-center py-2">참가자를 먼저 추가해 주세요.</p>';
+    return;
+  }
+  box.innerHTML = '';
+  for(let i=0;i<par3Count;i++){
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-2';
+    const sel = today.map(p=>`<option value="${escapeHtml(p.name)}" ${nearPins[i]===p.name?'selected':''}>${escapeHtml(p.id||p.name)}</option>`).join('');
+    row.innerHTML = `
+      <span class="text-base font-bold w-16">${i+1}번홀</span>
+      <select onchange="updateNearPin(${i}, this.value)" class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-2 py-2 text-lg outline-none">
+        <option value="">-- 선택 안함 --</option>
+        ${sel}
+      </select>`;
+    box.appendChild(row);
+  }
+}
+
+function updateNearPin(idx, name){
+  if(checkLocked()) return;
+  nearPins[idx] = name;
+  pushState({ nearPins });
+}
+
+/* ===================== 홀인원 ===================== */
+function renderHoleInOneList(){
+  const box = document.getElementById('holeInOneList');
+  if(!box) return;
+
+  const active = document.activeElement;
+  const activeId = (active && active.id && active.id.startsWith('hio-')) ? active.id : null;
+  const selStart = active ? active.selectionStart : null;
+  const selEnd = active ? active.selectionEnd : null;
+
+  if(holeInOnes.length===0){
+    box.innerHTML = '<p class="text-gray-400 text-sm text-center py-2">등록된 홀인원이 없습니다.</p>';
+    return;
+  }
+  box.innerHTML = holeInOnes.map((h,i)=>`
+    <div class="flex items-center gap-2 bg-yellow-50 border-2 border-yellow-300 rounded-xl px-3 py-2">
+      <select onchange="updateHoleInOneName(${i}, this.value)" class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-2 py-2 text-lg outline-none">
+        <option value="">-- 이름 선택 --</option>
+        ${today.map(p=>`<option value="${escapeHtml(p.name)}" ${h.name===p.name?'selected':''}>${escapeHtml(p.id||p.name)}</option>`).join('')}
+      </select>
+      <input id="hio-prize-${i}" type="text" inputmode="numeric" pattern="[0-9]*" value="${h.prize || ''}" placeholder="상금"
+        oninput="updateHoleInOnePrize(${i}, this.value)" onfocus="this.select()"
+        class="w-24 border-2 border-gray-300 rounded-lg px-2 py-2 text-lg text-right outline-none">
+      <span class="text-sm text-gray-500">원</span>
+      <button onclick="removeHoleInOne(${i})" class="text-red-600 font-bold text-base bg-red-100 px-2 py-2 rounded-lg active:bg-red-200">삭제</button>
+    </div>`).join('');
+
+  if(activeId){
+    const el = document.getElementById(activeId);
+    if(el){ el.focus(); try{ el.setSelectionRange(selStart, selEnd); }catch(e){} }
+  }
+}
+
+function addHoleInOne(){
+  if(checkLocked()) return;
+  holeInOnes.push({ name: '', prize: 0 });
+  pushState({ holeInOnes });
+  renderHoleInOneList();
+}
+
+function updateHoleInOneName(i, val){
+  if(checkLocked()) return;
+  holeInOnes[i].name = val;
+  pushState({ holeInOnes });
+}
+
+let holeInOneDebounce = {};
+function updateHoleInOnePrize(i, val){
+  if(checkLocked()) return;
+  const v = parseInt(val, 10);
+  holeInOnes[i].prize = isNaN(v) ? 0 : v;
+  clearTimeout(holeInOneDebounce[i]);
+  holeInOnePushPending = true;
+  holeInOneDebounce[i] = setTimeout(()=>{
+    pushState({ holeInOnes }).then(()=>{ holeInOnePushPending = false; });
+  }, 400);
+}
+
+function removeHoleInOne(i){
+  if(checkLocked()) return;
+  holeInOnes.splice(i,1);
+  pushState({ holeInOnes });
+  renderHoleInOneList();
+}
+
+/* ===================== 자동 조편성 (지그재그) ===================== */
+let groupSize = 4; // 한 조당 최대 인원수 (3, 4, 5 중 선택)
+
+function setGroupSize(n){
+  if(checkLocked()) return;
+  groupSize = n;
+  pushState({ groupSize: n });
+  renderGroupSizeButtons();
+}
+
+function renderGroupSizeButtons(){
+  [3,4,5].forEach(n=>{
+    const btn = document.getElementById('gs-' + n);
+    if(!btn) return;
+    if(n === groupSize){
+      btn.className = 'group-size-btn py-3 rounded-xl text-lg font-bold border-2 bg-blue-700 text-white border-blue-700';
+    } else {
+      btn.className = 'group-size-btn py-3 rounded-xl text-lg font-bold border-2 bg-white text-gray-700 border-gray-300';
+    }
+  });
+}
+
+function computeGroupSizes(n, maxSize){
+  const numGroups = Math.max(1, Math.ceil(n / maxSize));
+  const base = Math.floor(n/numGroups);
+  const extra = n % numGroups;
+  const sizes = [];
+  for(let i=0;i<numGroups;i++) sizes.push(base + (i<extra?1:0));
+  return sizes;
+}
+
+function zigzagAssign(participants, sizes){
+  const sorted = [...participants].sort((a,b)=> b.handicap - a.handicap);
+  const numGroups = sizes.length;
+  const groups = Array.from({length:numGroups}, ()=>[]);
+  let idx = 0;
+  let forward = true;
+  while(idx < sorted.length){
+    const order = [...Array(numGroups).keys()];
+    if(!forward) order.reverse();
+    for(const gi of order){
+      if(idx >= sorted.length) break;
+      if(groups[gi].length < sizes[gi]){
+        groups[gi].push(sorted[idx]);
+        idx++;
+      }
+    }
+    forward = !forward;
+  }
+  return groups;
+}
+
+function autoGroup(){
+  if(checkLocked()) return;
+  const msg = document.getElementById('autoGroupMsg');
+  const setMsg = (text, isError)=>{
+    if(!msg) return;
+    msg.textContent = text || '';
+    msg.className = 'text-sm mt-2 ' + (isError ? 'text-red-600 font-bold' : 'text-gray-500');
+  };
+  if(today.length < 3){
+    setMsg('조편성을 위해서는 최소 3명 이상의 참가자가 필요합니다.', true);
+    return;
+  }
+  const sizes = computeGroupSizes(today.length, groupSize);
+  currentGroups = zigzagAssign(today, sizes);
+  // Firestore는 배열 안에 배열을 직접 저장할 수 없어(중첩 배열 미지원),
+  // 각 조를 { members: [...] } 형태로 감싸서 저장합니다.
+  pushState({ groups: currentGroups.map(g => ({ members: g })) });
+  renderGroups();
+  setMsg(`${sizes.length}개 조로 편성 완료!`, false);
+}
+
+function renderGroups(){
+  const box = document.getElementById('groupResult');
+  if(!currentGroups){ box.innerHTML=''; return; }
+  const numGroups = currentGroups.length;
+  const isViewer = (userMode !== 'admin');
+  box.innerHTML = (isViewer ? '' : `
+    <p class="text-sm text-gray-500 -mb-2">개인 사정이나 형평성을 고려해 필요하면 참가자 옆 드롭다운으로 조를 직접 옮길 수 있습니다.</p>
+  `) + currentGroups.map((g, gi)=>{
+    const avg = (g.reduce((s,p)=>s+p.handicap,0)/g.length).toFixed(1);
+    return `
+    <div class="bg-white rounded-2xl p-4 shadow border-2 border-blue-300">
+      <div class="flex justify-between items-center mb-2">
+        <h3 class="text-xl font-extrabold text-blue-800">${gi+1}조 (${g.length}명)</h3>
+        ${isViewer ? '' : `<span class="text-base font-bold bg-blue-100 text-blue-800 px-3 py-1 rounded-lg">평균 핸디 ${avg}</span>`}
+      </div>
+      <div class="space-y-2">
+        ${g.map(p=>`
+          <div class="flex items-center justify-between gap-2 border-b border-gray-100 py-2">
+            <div class="flex-1 min-w-0">
+              <span class="text-lg font-bold">${escapeHtml(p.id||p.name)}</span>
+              ${isViewer ? '' : `<span class="text-gray-600 ml-2">${p.handicap}</span>`}
+            </div>
+            ${isViewer ? '' : `
+            <select onchange="moveMemberToGroup(${gi}, '${escapeAttr(p.name)}', parseInt(this.value,10))"
+              class="border-2 border-gray-300 rounded-lg px-2 py-1 text-base outline-none">
+              ${Array.from({length:numGroups}, (_,ti)=>`<option value="${ti}" ${ti===gi?'selected':''}>${ti+1}조로</option>`).join('')}
+            </select>`}
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function moveMemberToGroup(fromIdx, name, toIdx){
+  if(checkLocked()) return;
+  if(!currentGroups || fromIdx === toIdx) return;
+  const fromGroup = currentGroups[fromIdx];
+  if(fromGroup.length <= 1){
+    alert('그 조에 남는 인원이 없어서 이동할 수 없습니다. 먼저 다른 분을 이동시켜 주세요.');
+    renderGroups();
+    return;
+  }
+  const pos = fromGroup.findIndex(p=>p.name===name);
+  if(pos === -1) return;
+  const [moved] = fromGroup.splice(pos, 1);
+  currentGroups[toIdx].push(moved);
+  pushState({ groups: currentGroups.map(g => ({ members: g })) });
+  renderGroups();
+}
+
+/* ===================== 행운상: 무상금자 대상 룰렛 추첨 ===================== */
+let lastEligibleForLucky = [];
+let lastLuckyPoolAmount = 0;
+
+function toggleGroupPrizeEdit(){
+  groupPrizeEditMode = !groupPrizeEditMode;
+  computeMoney();
+}
+
+let groupPrizeOverrideDebounce = {};
+function updateGroupPrizeOverride(groupIndex, val){
+  if(checkLocked()) return;
+  const v = parseInt(val, 10);
+  groupPrizeOverride[groupIndex] = isNaN(v) ? 0 : v;
+  clearTimeout(groupPrizeOverrideDebounce[groupIndex]);
+  groupPrizeOverrideDebounce[groupIndex] = setTimeout(()=>{
+    pushState({ groupPrizeOverride });
+    computeMoney();
+  }, 400);
+}
+
+function clearGroupPrizeOverride(groupIndex){
+  if(checkLocked()) return;
+  delete groupPrizeOverride[groupIndex];
+  pushState({ groupPrizeOverride });
+  computeMoney();
+}
+
+function updateLuckyCount(val){
+  if(checkLocked()) return;
+  let n = parseInt(val, 10);
+  if(isNaN(n) || n < 1) n = 1;
+  if(n > 20) n = 20;
+  luckyCount = n;
+  pushState({ luckyCount: n });
+}
+
+function openLuckyRoulette(){
+  if(checkLocked()) return;
+  const pool = lastEligibleForLucky;
+  if(pool.length === 0){
+    alert('추첨할 수 있는 대상자가 없습니다 (모두 이미 상금을 받았습니다).');
+    return;
+  }
+  const cnt = Math.min(luckyCount || 2, pool.length);
+  const modal = document.getElementById('luckyRouletteModal');
+  const display = document.getElementById('rouletteDisplay');
+  const resultBox = document.getElementById('rouletteResult');
+  if(!modal || !display || !resultBox) return;
+  resultBox.classList.add('hidden');
+  modal.classList.remove('hidden');
+  display.textContent = '?';
+
+  const labels = pool.map(name => String(displayLabel(name) || name).slice(0,4));
+  const spinInterval = setInterval(()=>{
+    display.textContent = labels[Math.floor(Math.random()*labels.length)];
+  }, 80);
+
+  setTimeout(()=>{
+    clearInterval(spinInterval);
+
+    const shuffled = [...pool];
+    for(let i=shuffled.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [shuffled[i],shuffled[j]] = [shuffled[j],shuffled[i]];
+    }
+    const winners = shuffled.slice(0, cnt);
+    luckyWinners = winners;
+    pushState({ luckyWinners: winners });
+
+    display.textContent = '🎉🎊✨';
+    resultBox.classList.remove('hidden');
+    document.getElementById('rouletteWinnersList').innerHTML = winners.map(name=>
+      `<p class="text-xl font-extrabold text-purple-800 leading-relaxed">착한일 많이 하셨나봐요~<br>${escapeHtml(displayLabel(name))}님! 🎊</p>`
+    ).join('');
+
+    computeMoney();
+  }, 5000);
+}
+
+function closeLuckyRoulette(){
+  const modal = document.getElementById('luckyRouletteModal');
+  if(modal) modal.classList.add('hidden');
+}
+
+/* ===================== 입력완료(잠금) ===================== */
+function renderLockBar(){
+  const statusText = document.getElementById('lockStatusText');
+  const btn = document.getElementById('lockActionBtn');
+  if(!statusText || !btn) return;
+  if(locked){
+    statusText.textContent = '🔒 입력완료 (수정 잠금됨)';
+    btn.textContent = '🔓 수정하기';
+    btn.onclick = unlockEvent;
+  } else {
+    statusText.textContent = '✏️ 입력 가능 상태';
+    btn.textContent = '✅ 입력완료';
+    btn.onclick = finalizeEvent;
+  }
+}
+
+function finalizeEvent(){
+  if(!confirm('입력을 완료하시겠습니까?\n완료 후에는 4자리 비밀번호를 입력해야 다시 수정할 수 있습니다.')) return;
+  let pin = prompt('숫자 4자리의 비밀번호를 지정해 주세요.');
+  if(pin === null) return;
+  pin = pin.trim();
+  if(!/^\d{4}$/.test(pin)){
+    alert('숫자 4자리로 입력해 주세요.');
+    return;
+  }
+  locked = true;
+  lockPin = pin;
+  pushState({ locked: true, lockPin: pin });
+  renderLockBar();
+  alert('저장되었습니다.');
+}
+
+function unlockEvent(){
+  const pw = prompt('수정하려면 지정하신 4자리 비밀번호를 입력해 주세요.');
+  if(pw === null) return;
+  if(pw !== lockPin && pw !== '2020'){
+    alert('비밀번호가 일치하지 않습니다.');
+    return;
+  }
+  locked = false;
+  pushState({ locked: false });
+  renderLockBar();
+  alert('수정 잠금이 해제되었습니다.');
+}
+
+// 각 수정 함수 맨 앞에서 호출: 잠겨있으면 true를 반환하고 안내 후 중단시킴
+function checkLocked(){
+  if(userMode !== 'admin'){
+    alert('이 모드에서는 해당 항목을 수정할 수 없습니다. 총무님께 요청해 주세요.');
+    return true;
+  }
+  if(locked){
+    alert('🔒 입력완료 상태입니다. 수정하려면 상단의 "수정하기" 버튼을 눌러 4자리 비밀번호를 입력해 주세요.');
+    return true;
+  }
+  return false;
+}
+
+function escapeAttr(str){
+  return String(str).replace(/'/g, "\\'");
+}
+
+/* 스코어 기반 순위 계산 — 핸디캡 보정 규칙: 음수는 그만큼 차감, 0~17은 영향 없음, 18 이상은 18만 차감(클럽 최고핸디캡 상한) */
+function computeWinners(){
+  const netScore = p => {
+    if(scores[p.name] == null) return null;
+    const h = p.handicap || 0;
+    if(h < 0) return scores[p.name] + h;
+    if(h >= 18) return scores[p.name] - 18;
+    return scores[p.name];
+  };
+
+  const ranked = today.filter(p => scores[p.name] != null)
+    .map(p => ({ name: p.name, id: p.id, net: netScore(p) }))
+    .sort((a,b)=> a.net - b.net);
+  const overall = ranked.slice(0, prizeRules.overallPlaces || 3);
+
+  // 홀인원을 한 회원이 속한 조는 무조건 1위. 여러 조에서 홀인원이 나오면 홀인원 상금이 큰 조가 더 높은 순위.
+  const holeInOneAmountByGroup = {};
+  (holeInOnes || []).forEach(h=>{
+    if(!h.name || !currentGroups) return;
+    currentGroups.forEach((g, gi)=>{
+      if(g.find(p=>p.name===h.name)){
+        holeInOneAmountByGroup[gi] = (holeInOneAmountByGroup[gi] || 0) + (h.prize || 0);
+      }
+    });
+  });
+
+  // 조별 경쟁: 각 조 내부 순위가 아니라, 조의 평균 넷스코어로 다른 조와 비교합니다.
+  const allGroupsInfo = (currentGroups || []).map((g, gi)=>{
+    const scored = g.filter(p => scores[p.name] != null);
+    const avgNet = scored.length ? scored.reduce((s,p)=> s + netScore(p), 0) / scored.length : null;
+    return { groupIndex: gi, members: g, avgNet, scoredCount: scored.length, totalCount: g.length, hio: holeInOneAmountByGroup[gi] || 0 };
+  }).filter(x => x.avgNet != null || x.hio > 0);
+
+  const hioGroups = allGroupsInfo.filter(x => x.hio > 0).sort((a,b)=> b.hio - a.hio);
+  const normalGroups = allGroupsInfo.filter(x => x.hio === 0).sort((a,b)=> a.avgNet - b.avgNet);
+  const groupRanking = [...hioGroups, ...normalGroups];
+
+  const nearPinsList = (nearPins || []).filter(n => n);
+
+  return { overall, groupRanking, nearPins: nearPinsList, fullRanking: ranked };
+}
+
+/* ===================== 상금 배분 규칙 ===================== */
+function renderPrizeRulesForm(){
+  const box = document.getElementById('prizeRulesForm');
+  if(!box) return;
+
+  const active = document.activeElement;
+  const activeId = (active && active.id && active.id.startsWith('pr-')) ? active.id : null;
+  const selStart = active ? active.selectionStart : null;
+  const selEnd = active ? active.selectionEnd : null;
+
+  const pctSum = (prizeRules.overallPct||0) + (prizeRules.groupPct||0) + (prizeRules.eventPct||0);
+  const overallSplit = prizeRules.overallSplit || [];
+  const overallSplitSum = overallSplit.reduce((a,b)=>a+(b||0),0);
+  const groupSplit = prizeRules.groupSplit || [60,40];
+  const groupSplitSum = groupSplit.reduce((a,b)=>a+(b||0),0);
+  const evSplit = prizeRules.eventSplit || {nearPin:50, lucky:50};
+  const evSplitSum = (evSplit.nearPin||0) + (evSplit.lucky||0);
+  const numGroups = currentGroups ? currentGroups.length : 0;
+
+  box.innerHTML = `
+    <p class="text-sm text-gray-500 mb-2">참가비 총액을 아래 세 항목으로 나눕니다. (합계 100% 권장)</p>
+    <div class="grid grid-cols-3 gap-2 mb-1">
+      <div>
+        <label class="text-sm text-gray-600 block mb-1">개인전</label>
+        <div class="flex items-center border-2 border-gray-300 rounded-lg">
+          <input id="pr-overallPct" type="text" inputmode="numeric" pattern="[0-9]*" value="${prizeRules.overallPct}"
+            onfocus="this.select()"
+            oninput="updatePct('overallPct', this.value)"
+            class="w-full min-w-0 px-2 py-2 text-lg text-right outline-none">
+          <span class="pr-2 text-gray-500">%</span>
+        </div>
+      </div>
+      <div>
+        <label class="text-sm text-gray-600 block mb-1">조별</label>
+        <div class="flex items-center border-2 border-gray-300 rounded-lg">
+          <input id="pr-groupPct" type="text" inputmode="numeric" pattern="[0-9]*" value="${prizeRules.groupPct}"
+            onfocus="this.select()"
+            oninput="updatePct('groupPct', this.value)"
+            class="w-full min-w-0 px-2 py-2 text-lg text-right outline-none">
+          <span class="pr-2 text-gray-500">%</span>
+        </div>
+      </div>
+      <div>
+        <label class="text-sm text-gray-600 block mb-1">니어핀+행운상</label>
+        <div class="flex items-center border-2 border-gray-300 rounded-lg">
+          <input id="pr-eventPct" type="text" inputmode="numeric" pattern="[0-9]*" value="${prizeRules.eventPct}"
+            onfocus="this.select()"
+            oninput="updatePct('eventPct', this.value)"
+            class="w-full min-w-0 px-2 py-2 text-lg text-right outline-none">
+          <span class="pr-2 text-gray-500">%</span>
+        </div>
+      </div>
+    </div>
+    <p id="pctSumIndicator" class="text-sm mb-4 ${pctSum===100 ? 'text-green-600' : 'text-red-600 font-bold'}">합계: ${pctSum}% ${pctSum===100 ? '✓' : '(100%가 되도록 맞춰주세요)'}</p>
+
+    ${prizeRules.overallPct > 0 ? `
+    <div class="border-t pt-3 mb-3">
+      <p class="text-base font-bold mb-1">👤 개인전 (핸디캡 반영 넷스코어 순위)</p>
+      <div class="flex items-center gap-2 mb-2">
+        <label class="text-base whitespace-nowrap">포상자 수</label>
+        <input id="pr-overallPlaces" type="text" inputmode="numeric" pattern="[0-9]*" value="${prizeRules.overallPlaces}"
+            onfocus="this.select()"
+          oninput="updateOverallPlaces(this.value)"
+          class="w-16 border-2 border-gray-300 rounded-lg px-2 py-1 text-lg text-center outline-none">
+        <span class="text-base">명</span>
+      </div>
+      <div class="space-y-1">
+        ${overallSplit.map((v,i)=>`
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-gray-600 w-10">${i+1}위</span>
+            <input id="pr-overallSplit-${i}" type="text" inputmode="numeric" pattern="[0-9]*" value="${v}"
+            onfocus="this.select()"
+              oninput="updateOverallSplit(${i}, this.value)"
+              class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-2 py-1 text-lg text-right outline-none">
+            <span class="text-sm text-gray-500">%</span>
+          </div>`).join('')}
+      </div>
+      <p class="text-sm mt-1 ${overallSplitSum===100 ? 'text-green-600' : 'text-red-600 font-bold'}">등수별 합계: ${overallSplitSum}% ${overallSplitSum===100 ? '✓' : ''}</p>
+    </div>` : ''}
+
+    ${prizeRules.groupPct > 0 ? `
+    <div class="border-t pt-3 mb-3">
+      <p class="text-base font-bold mb-1">👥 조별 경쟁 (조 평균 넷스코어로 다른 조와 경쟁)</p>
+      <p class="text-sm text-gray-500 mb-2">같은 조 안에서 겨루는 게 아니라, 각 조의 평균 스코어로 다른 조와 순위를 겨룹니다. (현재 조편성: ${numGroups}개 조)</p>
+      <div class="flex items-center gap-2 mb-2">
+        <label class="text-base whitespace-nowrap">포상 조 수</label>
+        <input id="pr-groupPlaces" type="text" inputmode="numeric" pattern="[0-9]*" value="${prizeRules.groupPlaces}"
+            onfocus="this.select()"
+          oninput="updateGroupPlaces(this.value)"
+          class="w-16 border-2 border-gray-300 rounded-lg px-2 py-1 text-lg text-center outline-none">
+        <span class="text-base">개 조</span>
+      </div>
+      <div class="space-y-1">
+        ${groupSplit.map((v,i)=>`
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-gray-600 w-10">${i+1}위조</span>
+            <input id="pr-groupSplit-${i}" type="text" inputmode="numeric" pattern="[0-9]*" value="${v}"
+            onfocus="this.select()"
+              oninput="updateGroupSplit(${i}, this.value)"
+              class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-2 py-1 text-lg text-right outline-none">
+            <span class="text-sm text-gray-500">%</span>
+          </div>`).join('')}
+      </div>
+      <p class="text-sm mt-1 ${groupSplitSum===100 ? 'text-green-600' : 'text-red-600 font-bold'}">조 순위별 합계: ${groupSplitSum}% ${groupSplitSum===100 ? '✓' : ''}</p>
+      <p class="text-xs text-gray-400 mt-1">※ 설정한 비율(조 전체 금액 기준)과, 조원 수와 무관하게 1인당 공평한 금액을 절반씩 섞어서 계산합니다. 조원 수 차이로 인한 불공평은 줄이면서 설정 비율에서 크게 벗어나지 않습니다.</p>
+    </div>` : ''}
+
+    ${prizeRules.eventPct > 0 ? `
+    <div class="border-t pt-3">
+      <p class="text-base font-bold mb-2">🎯 니어핀 / 🍀 행운상 비율 (니어핀+행운상 금액 안에서)</p>
+      <div class="flex items-center gap-2 mb-1">
+        <span class="text-sm text-gray-600 w-16">니어핀</span>
+        <input id="pr-eventSplit-nearPin" type="text" inputmode="numeric" pattern="[0-9]*" value="${evSplit.nearPin}"
+            onfocus="this.select()"
+          oninput="updateEventSplit('nearPin', this.value)"
+          class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-2 py-1 text-lg text-right outline-none">
+        <span class="text-sm text-gray-500">%</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-sm text-gray-600 w-16">행운상</span>
+        <input id="pr-eventSplit-lucky" type="text" inputmode="numeric" pattern="[0-9]*" value="${evSplit.lucky}"
+            onfocus="this.select()"
+          oninput="updateEventSplit('lucky', this.value)"
+          class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-2 py-1 text-lg text-right outline-none">
+        <span class="text-sm text-gray-500">%</span>
+      </div>
+      <p class="text-sm mt-1 ${evSplitSum===100 ? 'text-green-600' : 'text-red-600 font-bold'}">합계: ${evSplitSum}% ${evSplitSum===100 ? '✓' : ''}</p>
+    </div>
+    <p class="text-xs text-gray-400 mt-2">※ 이 비율을 0%로 해도, 다른 항목에서 1,000원 단위 반올림으로 남는 돈이 있으면 정산 화면에서 행운상 추첨이 자동으로 나타납니다.</p>
+    ` : `
+    <p class="text-xs text-gray-400 border-t pt-3">※ 니어핀+행운상 비율이 0%여도, 다른 항목 반올림으로 남는 돈이 있으면 정산 화면에 행운상 추첨이 자동으로 나타납니다.</p>
+    `}
+  `;
+
+  if(activeId){
+    const el = document.getElementById(activeId);
+    if(el){ el.focus(); try{ el.setSelectionRange(selStart, selEnd); }catch(e){} }
+  }
+}
+
+let prizeRulesDebounce = null;
+function pushPrizeRules(){
+  clearTimeout(prizeRulesDebounce);
+  prizeRulesDebounce = setTimeout(()=> pushState({ prizeRules }), 400);
+}
+
+function updatePct(field, val){
+  if(checkLocked()) return;
+  const v = parseInt(val, 10);
+  prizeRules[field] = isNaN(v) ? 0 : v;
+  renderPrizeRulesForm();
+  pushPrizeRules();
+}
+
+function updateOverallPlaces(val){
+  if(checkLocked()) return;
+  let n = parseInt(val, 10);
+  if(isNaN(n) || n < 1) n = 1;
+  if(n > 10) n = 10;
+  prizeRules.overallPlaces = n;
+  const cur = prizeRules.overallSplit || [];
+  const arr = [];
+  for(let i=0;i<n;i++) arr.push(cur[i] != null ? cur[i] : 0);
+  prizeRules.overallSplit = arr;
+  renderPrizeRulesForm();
+  pushPrizeRules();
+}
+
+function updateOverallSplit(idx, val){
+  if(checkLocked()) return;
+  const v = parseInt(val, 10);
+  prizeRules.overallSplit[idx] = isNaN(v) ? 0 : v;
+  renderPrizeRulesForm();
+  pushPrizeRules();
+}
+
+function updateGroupPlaces(val){
+  if(checkLocked()) return;
+  let n = parseInt(val, 10);
+  if(isNaN(n) || n < 1) n = 1;
+  if(n > 10) n = 10;
+  prizeRules.groupPlaces = n;
+  const cur = prizeRules.groupSplit || [];
+  const arr = [];
+  for(let i=0;i<n;i++) arr.push(cur[i] != null ? cur[i] : 0);
+  prizeRules.groupSplit = arr;
+  renderPrizeRulesForm();
+  pushPrizeRules();
+}
+
+function updateGroupSplit(idx, val){
+  if(checkLocked()) return;
+  const v = parseInt(val, 10);
+  prizeRules.groupSplit[idx] = isNaN(v) ? 0 : v;
+  renderPrizeRulesForm();
+  pushPrizeRules();
+}
+
+function updateEventSplit(key, val){
+  if(checkLocked()) return;
+  const v = parseInt(val, 10);
+  if(!prizeRules.eventSplit) prizeRules.eventSplit = {nearPin:50, lucky:50};
+  prizeRules.eventSplit[key] = isNaN(v) ? 0 : v;
+  renderPrizeRulesForm();
+  pushPrizeRules();
+}
+
+/* ===================== 정산 ===================== */
+function computeMoney(){
+  const n = today.length;
+  const box = document.getElementById('moneyResult');
+  if(n===0){
+    box.innerHTML = '<p class="text-center text-gray-400 py-6">참가자를 먼저 추가해 주세요.</p>';
+    return;
+  }
+  const totalPot = n * feePerPerson;
+
+  // ① + ② 가 참가비 총액을 넘지 않도록 비율 그대로 유지하며 축소(무조건 참가비 이내로 정산)
+  let overallPrize = roundTo1000(totalPot * (prizeRules.overallPct/100));
+  let groupPrizeTotal = roundTo1000(totalPot * (prizeRules.groupPct/100));
+  if(overallPrize + groupPrizeTotal > totalPot){
+    const scale = totalPot / (overallPrize + groupPrizeTotal);
+    overallPrize = roundTo1000(overallPrize * scale);
+    groupPrizeTotal = totalPot - overallPrize;
+  }
+  // ③ 니어핀(+행운상)은 따로 반올림하지 않고 나머지로 계산 → 세 항목 합이 항상 참가비 총액과 일치
+  const eventPrize = Math.max(0, totalPot - overallPrize - groupPrizeTotal);
+  const evSplit = prizeRules.eventSplit || {nearPin:50, lucky:50};
+  const nearPinTotal = roundTo1000(eventPrize * ((evSplit.nearPin||0)/100));
+
+  const numGroups = currentGroups ? currentGroups.length : 0;
+  const validNearPinHoles = (nearPins||[]).filter(x=>x).length;
+  const nearPinPerHole = validNearPinHoles>0 ? Math.floor(nearPinTotal / validNearPinHoles / 1000)*1000 : 0;
+  const actualNearPinSum = nearPinPerHole * validNearPinHoles;
+
+  const winners = computeWinners();
+  const overallSplit = prizeRules.overallSplit || [50,30,20];
+  const gSplit = prizeRules.groupSplit || [60,40];
+  const groupPlaces = prizeRules.groupPlaces || 2;
+
+  const showOverall = prizeRules.overallPct > 0;
+  const showGroup = prizeRules.groupPct > 0;
+  const showNearPin = prizeRules.eventPct > 0;
+
+  const dateStr = new Date().toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric' });
+
+  /* ---------- 회원별 상금 집계 ---------- */
+  const memberPrize = {};
+  today.forEach(p=> memberPrize[p.name] = { overall:0, group:0, nearPin:0, lucky:0 });
+
+  let actualOverallSum = 0;
+  const overallLines = winners.overall.map((w,i)=>{
+    let amt = roundTo1000(overallPrize * ((overallSplit[i]||0)/100));
+    if(actualOverallSum + amt > overallPrize) amt = Math.max(0, overallPrize - actualOverallSum);
+    actualOverallSum += amt;
+    if(memberPrize[w.name]) memberPrize[w.name].overall += amt;
+    return `  ${i+1}위 ${w.id||w.name} (핸디반영 스코어 ${w.net}): ${amt.toLocaleString()}원`;
+  });
+
+  const fullRankingLines = winners.fullRanking.map((w,i)=>
+    `  ${i+1}. ${w.id||w.name} — 핸디반영 스코어 ${w.net}`
+  );
+
+  // 조별 경쟁: 조의 평균 넷스코어로 다른 조와 순위를 겨룹니다 (조 내부 경쟁 아님)
+  // "설정한 순위% 그대로(조 전체 금액 기준)"와 "조원 수와 무관하게 1인당 공평(가중치 기준)"
+  // 두 계산을 절반씩 섞어서, 조원 수 차이로 인한 불공평은 완화하되 설정 비율에서 너무 멀어지지 않게 합니다.
+  // 총무가 특정 조를 수동으로 고쳤으면(groupPrizeOverride) 그 값을 그대로 씁니다.
+  const winningGroupsList = winners.groupRanking.slice(0, groupPlaces);
+  const totalWeightedUnits = winningGroupsList.reduce((s,gr,i)=> s + (gSplit[i]||0) * gr.members.length, 0);
+  const valuePerUnit = totalWeightedUnits > 0 ? groupPrizeTotal / totalWeightedUnits : 0;
+
+  let actualGroupSum = 0;
+  let prevPerPerson = Infinity;
+  let prevTotal = Infinity;
+  const groupPrizeByGroupIdx = {};
+  const groupRankLines = winners.groupRanking.map((gr, i)=>{
+    const inMoney = i < groupPlaces;
+    let perPerson = 0;
+    let isOverridden = false;
+    if(inMoney && gr.members.length>0){
+      const overrideVal = groupPrizeOverride[gr.groupIndex];
+      if(overrideVal != null){
+        perPerson = overrideVal;
+        isOverridden = true;
+      } else {
+        const flatAmt = groupPrizeTotal * ((gSplit[i]||0)/100);
+        const weightedAmt = (gSplit[i]||0) * valuePerUnit * gr.members.length;
+        const blendedAmt = (flatAmt + weightedAmt) / 2;
+        perPerson = roundTo1000(blendedAmt / gr.members.length);
+        // 순위가 낮은데 앞 순위보다 많이 받는 역전 방지 (수동 수정값은 총무 의도 그대로 존중해 역전 방지 적용 안 함)
+        if(perPerson > prevPerPerson) perPerson = prevPerPerson;
+      }
+    }
+    let actualAmt = perPerson * gr.members.length;
+    if(inMoney && !isOverridden && actualAmt > prevTotal){
+      perPerson = gr.members.length>0 ? Math.floor(prevTotal/gr.members.length/1000)*1000 : 0;
+      actualAmt = perPerson * gr.members.length;
+    }
+    if(inMoney && !isOverridden && actualGroupSum + actualAmt > groupPrizeTotal){
+      const remaining = Math.max(0, groupPrizeTotal - actualGroupSum);
+      perPerson = gr.members.length>0 ? Math.floor(remaining/gr.members.length/1000)*1000 : 0;
+      actualAmt = perPerson * gr.members.length;
+    }
+    if(inMoney){
+      actualGroupSum += actualAmt;
+      prevPerPerson = perPerson;
+      prevTotal = actualAmt;
+      groupPrizeByGroupIdx[gr.groupIndex] = { rank: i+1, amt: actualAmt, perPerson, overridden: isOverridden };
+      gr.members.forEach(p=>{
+        if(memberPrize[p.name]) memberPrize[p.name].group += perPerson;
+      });
+    }
+    return `  ${i+1}위조: ${gr.groupIndex+1}조 (평균 핸디반영 스코어 ${gr.avgNet!=null ? gr.avgNet.toFixed(1) : '스코어 미입력'}, ${gr.scoredCount}/${gr.totalCount}명 입력)`
+      + (gr.hio > 0 ? ` 🕳️ 홀인원 조 (상금 ${gr.hio.toLocaleString()}원)` : '')
+      + (inMoney ? ` → 조 상금 ${(perPerson*gr.members.length).toLocaleString()}원 (1인당 ${perPerson.toLocaleString()}원)${isOverridden ? ' [총무 수정]' : ''}` : '');
+  });
+
+  const groupCompositionLines = currentGroups ? currentGroups.map((g, gi)=>{
+    const avgHc = (g.reduce((s,p)=>s+p.handicap,0)/g.length).toFixed(1);
+    return `  ${gi+1}조 (평균 핸디 ${avgHc}): ${g.map(p=>p.id||p.name).join(', ')}`;
+  }) : [];
+
+  const nearPinLines = (nearPins||[]).map((name, i)=>{
+    if(!name) return `  ${i+1}번홀: (미배정)`;
+    if(memberPrize[name]) memberPrize[name].nearPin += nearPinPerHole;
+    return `  ${i+1}번홀 니어핀: ${displayLabel(name)} → ${nearPinPerHole.toLocaleString()}원`;
+  });
+
+  // 홀인원 기록 (조별 순위 결정에만 쓰이며, 개인 상금 총액에는 포함하지 않습니다)
+  let holeInOneTotal = 0;
+  const holeInOneLines = (holeInOnes||[]).filter(h=>h.name).map(h=>{
+    holeInOneTotal += (h.prize||0);
+    return `  🕳️ ${displayLabel(h.name)} → ${(h.prize||0).toLocaleString()}원 (조 순위 결정용 기록, 개인 상금 미포함)`;
+  });
+
+  /* ---------- 행운상: 개인전·조별·니어핀에서 한 푼도 못 받은 사람 대상, 남은 금액 전부 ---------- */
+  const luckyPoolAmount = Math.max(0, totalPot - actualOverallSum - actualGroupSum - actualNearPinSum);
+  const overBudget = (actualOverallSum + actualGroupSum + actualNearPinSum) > totalPot;
+  const overBudgetAmount = overBudget ? (actualOverallSum + actualGroupSum + actualNearPinSum - totalPot) : 0;
+  const eligibleForLucky = today
+    .filter(p=>{
+      const m = memberPrize[p.name];
+      return (m.overall + m.group + m.nearPin) === 0;
+    })
+    .map(p=>p.name);
+
+  lastEligibleForLucky = eligibleForLucky;
+  lastLuckyPoolAmount = luckyPoolAmount;
+
+  let luckyEachMap = {};
+  if(luckyWinners && luckyWinners.length>0 && luckyPoolAmount>0){
+    const cnt = luckyWinners.length;
+    const base = roundTo1000(luckyPoolAmount / cnt);
+    let assigned = 0;
+    luckyWinners.forEach((name, idx)=>{
+      const amt = (idx === cnt-1) ? (luckyPoolAmount - assigned) : base;
+      if(idx !== cnt-1) assigned += amt;
+      luckyEachMap[name] = amt;
+      if(memberPrize[name]) memberPrize[name].lucky += amt;
+    });
+  }
+
+  const memberRows = today.map(p=>{
+    const m = memberPrize[p.name];
+    const total = m.overall + m.group + m.nearPin + m.lucky;
+    return { name: p.name, id: p.id, ...m, total };
+  }).sort((a,b)=> b.total - a.total);
+
+  const memberTableText = memberRows.map(r=>
+    `  ${r.id||r.name}: 총 ${r.total.toLocaleString()}원  (개인전 ${r.overall.toLocaleString()} · 조별 ${r.group.toLocaleString()} · 니어핀 ${r.nearPin.toLocaleString()} · 행운상 ${r.lucky.toLocaleString()})`
+  ).join('\n');
+
+  const luckyText = (luckyWinners && luckyWinners.length>0)
+    ? luckyWinners.map(name => `${displayLabel(name)} ${(luckyEachMap[name]||0).toLocaleString()}원`).join(', ')
+    : '(미추첨)';
+
+  const shareText =
+`⛳ 일스클럽 쫄깃한판 정산 결과 (${dateStr})
+------------------------------
+참가 인원: ${n}명
+참가비: 1인 ${feePerPerson.toLocaleString()}원 × ${n}명 = ${totalPot.toLocaleString()}원
+------------------------------
+[조 편성]
+${groupCompositionLines.length ? groupCompositionLines.join('\n') : '  (조편성 미실시)'}
+------------------------------${showOverall ? `
+[① 개인전 상금 (${actualOverallSum.toLocaleString()}원)]
+${overallLines.length ? overallLines.join('\n') : '  (스코어 미입력)'}
+------------------------------
+[개인전 순위표 — 핸디캡 반영]
+${fullRankingLines.length ? fullRankingLines.join('\n') : '  (스코어 미입력)'}
+------------------------------` : ''}${showGroup ? `
+[② 조별 경쟁 상금 (${actualGroupSum.toLocaleString()}원) — 조 vs 조]
+${groupRankLines.length ? groupRankLines.join('\n') : '  (조편성 또는 스코어 필요)'}
+------------------------------` : ''}${showNearPin ? `
+[③ 니어핀 상금 (${actualNearPinSum.toLocaleString()}원)]
+${nearPinLines.length ? nearPinLines.join('\n') : '  (파3 홀 미설정)'}
+------------------------------` : ''}${luckyPoolAmount>0 || (luckyWinners && luckyWinners.length>0) ? `
+[④ 행운상] ${luckyText}
+------------------------------` : ''}
+[⑤ 홀인원 기록 (조별 순위 결정용 · 개인 상금 미포함)]
+${holeInOneLines.length ? holeInOneLines.join('\n') : '  (홀인원 없음)'}
+------------------------------
+[회원별 최종 상금]
+${memberTableText}
+------------------------------
+총 상금 합계: ${totalPot.toLocaleString()}원 (참가비 총액과 정확히 일치, 홀인원은 별도 기록)`;
+
+  box.innerHTML = `
+    ${overBudget ? `
+    <div class="bg-red-100 border-2 border-red-500 rounded-2xl p-4">
+      <p class="text-lg font-extrabold text-red-700 text-center">⚠️ 상금 수정으로 참가비 총액을 ${overBudgetAmount.toLocaleString()}원 초과했습니다!</p>
+      <p class="text-sm text-red-600 text-center mt-1">"상금 수정"에서 금액을 낮추거나 "자동으로" 버튼으로 되돌려 주세요.</p>
+    </div>` : ''}
+    <div class="bg-white rounded-2xl p-4 shadow border-2 border-orange-300 space-y-3">
+      <div class="grid grid-cols-1 gap-2">
+        <div class="flex justify-between text-lg py-2 border-b"><span class="font-bold">참가 인원</span><span>${n}명</span></div>
+        <div class="flex justify-between text-lg py-2 border-b"><span class="font-bold">참가비 총액</span><span class="font-extrabold text-orange-700">${totalPot.toLocaleString()}원</span></div>
+        ${showOverall ? `<div class="flex justify-between text-lg py-2 border-b"><span class="font-bold">① 개인전 상금 (${prizeRules.overallPct}%)</span><span>${actualOverallSum.toLocaleString()}원</span></div>` : ''}
+        ${showGroup ? `<div class="flex justify-between text-lg py-2 border-b"><span class="font-bold">② 조별 경쟁 상금 (${prizeRules.groupPct}%)</span><span>${actualGroupSum.toLocaleString()}원</span></div>` : ''}
+        ${showNearPin ? `<div class="flex justify-between text-lg py-2 border-b"><span class="font-bold">③ 니어핀 상금</span><span>${actualNearPinSum.toLocaleString()}원</span></div>` : ''}
+        ${holeInOneTotal>0 ? `<div class="flex justify-between text-lg py-2"><span class="font-bold">🕳️ 홀인원 (조별순위 결정용, 개인상금 미포함)</span><span>${holeInOneTotal.toLocaleString()}원</span></div>` : ''}
+      </div>
+    </div>
+
+    ${(luckyPoolAmount>0 || (luckyWinners && luckyWinners.length>0)) ? `
+    <div class="bg-purple-50 rounded-2xl p-4 shadow border-2 border-purple-400">
+      ${luckyPoolAmount>0 ? `
+      <p class="text-lg font-extrabold text-purple-800 text-center leading-relaxed">🎉 포상 후 남은 금액이 있습니다.<br>총무님!!! 행운상 추첨해 주세요~</p>
+      <p class="text-4xl font-extrabold text-purple-700 text-center my-3">${luckyPoolAmount.toLocaleString()}원</p>
+      ${userMode==='admin' ? `
+      <div class="flex items-center gap-2 mb-3">
+        <label class="text-base font-bold whitespace-nowrap">행운상 인원수</label>
+        <input id="luckyCountInput" type="text" inputmode="numeric" pattern="[0-9]*" value="${luckyCount || 2}"
+          onfocus="this.select()" onchange="updateLuckyCount(this.value)"
+          class="w-16 border-2 border-gray-300 rounded-lg px-2 py-2 text-lg text-center outline-none">
+        <span class="text-base">명 (대상: ${eligibleForLucky.length}명)</span>
+      </div>
+      <button onclick="openLuckyRoulette()" class="btn-primary w-full bg-purple-700 text-white py-4 rounded-xl active:bg-purple-900">
+        🎰 행운상 추첨${luckyWinners && luckyWinners.length>0 ? ' 다시하기' : '하기'}
+      </button>` : `<p class="text-center text-gray-500 text-sm">총무가 추첨할 예정입니다.</p>`}
+      ` : ''}
+      ${(luckyWinners && luckyWinners.length>0) ? `
+      <div class="${luckyPoolAmount>0?'mt-4 pt-3 border-t border-purple-200':''}">
+        <p class="text-base font-bold text-purple-800 mb-2">🍀 당첨자</p>
+        ${luckyWinners.map(name=>`
+          <div class="flex justify-between text-lg py-1">
+            <span class="font-bold">${escapeHtml(displayLabel(name))}</span>
+            <span>${(luckyEachMap[name]||0).toLocaleString()}원</span>
+          </div>`).join('')}
+      </div>` : ''}
+    </div>` : ''}
+
+    ${showOverall ? `
+    <div class="bg-white rounded-2xl p-4 shadow border-2 border-green-300">
+      <h3 class="text-xl font-extrabold mb-2">👤 개인전 순위표 (핸디캡 반영)</h3>
+      ${winners.fullRanking.length ? `
+      <div class="space-y-1">
+        ${winners.fullRanking.map((w,i)=>`
+          <div class="flex justify-between items-center text-lg py-1 border-b border-gray-100 ${i<(prizeRules.overallPlaces||3)?'font-extrabold text-green-700':''}">
+            <span>${i+1}위 ${escapeHtml(w.id||w.name)}</span>
+            <span class="text-base text-gray-600">핸디반영 스코어 ${w.net}</span>
+          </div>`).join('')}
+      </div>` : `<p class="text-gray-400 text-center py-2">스코어가 입력된 참가자가 없습니다.</p>`}
+    </div>` : ''}
+
+    ${showGroup ? `
+    <div class="bg-white rounded-2xl p-4 shadow border-2 border-teal-300">
+      <h3 class="text-xl font-extrabold mb-2">👥 조별 경쟁 순위표 (조 vs 조)</h3>
+      <p class="text-sm text-gray-500 mb-2">같은 조 안에서 겨루지 않고, 조 평균 넷스코어로 다른 조와 순위를 겨룹니다.</p>
+      ${winners.groupRanking.length ? `
+      <div class="space-y-2">
+        ${winners.groupRanking.map((gr,i)=>{
+          const won = groupPrizeByGroupIdx[gr.groupIndex];
+          return `
+          <div class="border-2 ${gr.hio>0 ? 'border-yellow-400 bg-yellow-50' : (won?'border-teal-300 bg-teal-50':'border-gray-100')} rounded-xl px-4 py-3">
+            <div class="flex justify-between items-center">
+              <span class="text-lg font-bold">${i+1}위 · ${gr.groupIndex+1}조 ${won?'🏆':''}${gr.hio>0?' 🕳️':''}</span>
+              <span class="text-base font-bold text-teal-700">${gr.avgNet!=null ? `평균 스코어 ${gr.avgNet.toFixed(1)}` : '스코어 미입력'}</span>
+            </div>
+            <div class="text-sm text-gray-500 mt-1">${gr.members.map(p=>escapeHtml(p.id||p.name)).join(', ')} (스코어 입력 ${gr.scoredCount}/${gr.totalCount}명)</div>
+            ${gr.hio>0 ? `<div class="text-sm text-yellow-700 font-bold mt-1">🕳️ 홀인원으로 자동 1순위권 (상금 ${gr.hio.toLocaleString()}원)</div>` : ''}
+            ${won ? `<div class="text-sm text-teal-700 font-bold mt-1">조 상금 ${won.amt.toLocaleString()}원 → 1인당 ${won.perPerson.toLocaleString()}원${won.overridden ? ' <span class="text-orange-600">(수정됨)</span>' : ''}</div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>` : `<p class="text-gray-400 text-center py-2">조편성 및 스코어 입력이 필요합니다.</p>`}
+
+      ${userMode==='admin' ? `
+      <button onclick="toggleGroupPrizeEdit()" class="btn-secondary w-full mt-3 ${groupPrizeEditMode ? 'bg-gray-500' : 'bg-teal-700'} text-white py-3 rounded-xl active:opacity-80">
+        ${groupPrizeEditMode ? '✖️ 상금 수정 닫기' : '✏️ 상금 수정'}
+      </button>
+      ${groupPrizeEditMode ? `
+      <div class="mt-3 space-y-2 border-t pt-3">
+        <p class="text-sm text-gray-500">각 순위 조의 1인당 상금을 직접 입력하면, 그 값으로 계산됩니다.</p>
+        ${winners.groupRanking.slice(0, groupPlaces).map((gr,i)=>{
+          const cur = groupPrizeByGroupIdx[gr.groupIndex];
+          return `
+          <div class="flex items-center gap-2">
+            <span class="text-base font-bold w-20">${i+1}위 · ${gr.groupIndex+1}조</span>
+            <input id="gpo-${gr.groupIndex}" type="text" inputmode="numeric" pattern="[0-9]*"
+              value="${cur ? cur.perPerson : 0}" onfocus="this.select()"
+              oninput="updateGroupPrizeOverride(${gr.groupIndex}, this.value)"
+              class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-2 py-2 text-lg text-right outline-none">
+            <span class="text-sm text-gray-500">원/인</span>
+            ${groupPrizeOverride[gr.groupIndex] != null ? `<button onclick="clearGroupPrizeOverride(${gr.groupIndex})" class="text-xs bg-gray-100 text-gray-600 px-2 py-2 rounded-lg">자동으로</button>` : ''}
+          </div>`;
+        }).join('')}
+      </div>` : ''}
+      ` : ''}
+    </div>` : ''}
+
+    <div class="bg-white rounded-2xl p-4 shadow border-2 border-blue-300">
+      <h3 class="text-xl font-extrabold mb-2">🏆 회원별 최종 상금</h3>
+      <div class="space-y-2">
+        ${memberRows.map(r=>`
+          <div class="border-2 ${r.total>0?'border-blue-200 bg-blue-50':'border-gray-100'} rounded-xl px-4 py-3">
+            <div class="flex justify-between items-center">
+              <span class="text-lg font-bold">${escapeHtml(r.id||r.name)}</span>
+              <span class="text-xl font-extrabold ${r.total>0?'text-blue-700':'text-gray-400'}">${r.total.toLocaleString()}원</span>
+            </div>
+            ${r.total>0 ? `<div class="text-sm text-gray-500 mt-1">개인전 ${r.overall.toLocaleString()} · 조별 ${r.group.toLocaleString()} · 니어핀 ${r.nearPin.toLocaleString()} · 행운상 ${r.lucky.toLocaleString()}</div>` : ''}
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="bg-gray-900 rounded-2xl p-4 shadow">
+      <p class="text-white text-lg font-extrabold mb-2">📋 공유용 정산 결과</p>
+      <pre id="resultText" class="bg-white text-gray-900 rounded-xl p-4 text-base leading-relaxed whitespace-pre-wrap font-mono overflow-x-auto">${shareText}</pre>
+      <button onclick="copyResult()" class="btn-primary w-full mt-3 bg-yellow-400 text-gray-900 py-4 rounded-xl active:bg-yellow-500">
+        📋 결과 복사하기
+      </button>
+    </div>
+  `;
+}
+
+
+async function copyResult(){
+  const text = document.getElementById('resultText').innerText;
+  try{
+    await navigator.clipboard.writeText(text);
+    alert('정산 결과가 복사되었습니다!');
+  }catch(e){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    alert('정산 결과가 복사되었습니다!');
+  }
+}
+
+/* ===================== 유틸 ===================== */
+// 오늘 참가자 목록에서 아이디를 찾아 우선 표시하고, 아이디가 없으면 이름으로 대체합니다.
+function displayLabel(name){
+  const p = today.find(t=>t.name===name);
+  return (p && p.id) ? p.id : name;
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+}
+
+/* ===================== 초기 진입 ===================== */
+window.addEventListener('DOMContentLoaded', ()=>{
+  const savedCode = localStorage.getItem('golf_club_code');
+  if(savedCode){
+    document.getElementById('roomCodeInput').value = savedCode;
+    if(initFirebase()) joinRoom();
+  }
+
+  // "시작" 버튼이 inline onclick으로 반응하지 않는 환경(일부 브라우저의 CSP 등)을 대비한 이중 백업
+  const startBtn = document.getElementById('createEventBtn');
+  if(startBtn){
+    startBtn.addEventListener('click', function(e){
+      createEvent();
+    });
+    startBtn.addEventListener('touchend', function(e){
+      e.preventDefault();
+      createEvent();
+    }, { passive: false });
+  }
+});
+
+</script>
+</body>
+</html>
