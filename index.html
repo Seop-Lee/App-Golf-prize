@@ -36,7 +36,7 @@
       입장하기
     </button>
     <p id="roomGateMsg" class="text-red-600 text-sm mt-3 text-center"></p>
-    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v34</p>
+    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v35</p>
   </div>
 </div>
 
@@ -232,7 +232,7 @@
     <!-- ================= 탭3: 조편성 ================= -->
     <section id="tab-groups" class="space-y-4 hidden">
       <div id="groupEditControls" class="bg-white rounded-2xl p-4 shadow border-2 border-gray-200 text-center">
-        <p class="text-base text-gray-600 mb-3">한 조당 최대 인원수를 선택하세요.<br>핸디캡을 고려해 자동으로 균등 배정합니다.</p>
+        <p class="text-base text-gray-600 mb-3">한 조당 최대 인원수를 선택하세요.<br>핸디캡을 고려해 자동으로 균등 배정하고, 최근 1~2개 대회에서 같은 조였던 분들은 균형이 크게 깨지지 않는 선에서 가능한 만큼 다른 조로 배치합니다.</p>
         <div class="grid grid-cols-3 gap-2 mb-3">
           <button id="gs-3" onclick="setGroupSize(3)" class="group-size-btn py-3 rounded-xl text-lg font-bold border-2">3명</button>
           <button id="gs-4" onclick="setGroupSize(4)" class="group-size-btn py-3 rounded-xl text-lg font-bold border-2">4명</button>
@@ -1884,7 +1884,76 @@ function zigzagAssign(participants, sizes){
   return groups;
 }
 
-function autoGroup(){
+// 두 이름이 최근 조합("이름1|이름2" 정렬키)에 포함되어 있는지 확인
+function hasRecentPair(recentPairs, name1, name2){
+  return recentPairs.has([name1, name2].sort().join('|'));
+}
+function groupAvgHandicap(g){
+  return g.reduce((s,p)=>s+p.handicap,0) / g.length;
+}
+function maxMinGap(groups){
+  const avgs = groups.map(groupAvgHandicap);
+  return Math.max(...avgs) - Math.min(...avgs);
+}
+
+// 핸디캡 균형은 최대한 지키면서, 최근 1~2개 대회에서 같은 조였던 조합은
+// 가능한 만큼만 다른 조로 교체(스왑)해서 피합니다. 균형이 많이 깨지면 포기하고 그대로 둡니다.
+function avoidRecentPairs(groups, recentPairs){
+  if(!recentPairs || recentPairs.size === 0) return groups;
+
+  function findViolations(){
+    const violations = [];
+    groups.forEach((g, gi)=>{
+      for(let i=0;i<g.length;i++){
+        for(let j=i+1;j<g.length;j++){
+          if(hasRecentPair(recentPairs, g[i].name, g[j].name)){
+            violations.push({ gi, ai: i });
+          }
+        }
+      }
+    });
+    return violations;
+  }
+
+  let attempts = 0;
+  let violations = findViolations();
+  while(violations.length > 0 && attempts < 60){
+    attempts++;
+    const v = violations[0];
+    const g = groups[v.gi];
+    const personA = g[v.ai];
+    let swapped = false;
+
+    for(let gj=0; gj<groups.length && !swapped; gj++){
+      if(gj === v.gi) continue;
+      const otherGroup = groups[gj];
+      for(let k=0; k<otherGroup.length && !swapped; k++){
+        const candidate = otherGroup[k];
+        const gRestOk = g.every((p,idx)=> idx===v.ai || !hasRecentPair(recentPairs, candidate.name, p.name));
+        const otherRestOk = otherGroup.every((p,idx)=> idx===k || !hasRecentPair(recentPairs, personA.name, p.name));
+        if(!gRestOk || !otherRestOk) continue;
+
+        const beforeGap = maxMinGap(groups);
+        groups[v.gi][v.ai] = candidate;
+        groups[gj][k] = personA;
+        const afterGap = maxMinGap(groups);
+
+        if(afterGap <= beforeGap + 0.5){
+          swapped = true; // 균형이 크게 안 깨지면 채택
+        } else {
+          groups[v.gi][v.ai] = personA; // 되돌리기
+          groups[gj][k] = candidate;
+        }
+      }
+    }
+
+    if(!swapped) violations.shift(); // 이번 위반은 해결 불가 → 핸디캡 균형 우선, 그대로 둠
+    violations = findViolations();
+  }
+  return groups;
+}
+
+async function autoGroup(){
   if(checkLocked()) return;
   const msg = document.getElementById('autoGroupMsg');
   const setMsg = (text, isError)=>{
@@ -1896,13 +1965,46 @@ function autoGroup(){
     setMsg('조편성을 위해서는 최소 3명 이상의 참가자가 필요합니다.', true);
     return;
   }
+
+  setMsg('최근 대회 기록을 확인하는 중...', false);
+
+  // 최근 대회(현재 대회 제외) 최대 2개에서 같은 조였던 조합을 수집
+  let recentPairs = new Set();
+  try{
+    if(clubRef){
+      const snap = await clubRef.collection('events').orderBy('createdAt','desc').limit(4).get();
+      let checked = 0;
+      for(const doc of snap.docs){
+        if(doc.id === eventId) continue;
+        const data = doc.data();
+        if(data.groups){
+          data.groups.forEach(g=>{
+            const members = (g.members||g).map(p=>p.name);
+            for(let i=0;i<members.length;i++){
+              for(let j=i+1;j<members.length;j++){
+                recentPairs.add([members[i], members[j]].sort().join('|'));
+              }
+            }
+          });
+        }
+        checked++;
+        if(checked >= 2) break;
+      }
+    }
+  }catch(err){
+    console.error(err);
+  }
+
   const sizes = computeGroupSizes(today.length, groupSize);
-  currentGroups = zigzagAssign(today, sizes);
+  let groups = zigzagAssign(today, sizes);
+  groups = avoidRecentPairs(groups, recentPairs);
+  currentGroups = groups;
+
   // Firestore는 배열 안에 배열을 직접 저장할 수 없어(중첩 배열 미지원),
   // 각 조를 { members: [...] } 형태로 감싸서 저장합니다.
   pushState({ groups: currentGroups.map(g => ({ members: g })) });
   renderGroups();
-  setMsg(`${sizes.length}개 조로 편성 완료!`, false);
+  setMsg(`${sizes.length}개 조로 편성 완료! (핸디캡 균형 우선, 최근 동반조는 가능한 만큼 피함)`, false);
 }
 
 function renderGroups(){
