@@ -36,7 +36,7 @@
       입장하기
     </button>
     <p id="roomGateMsg" class="text-red-600 text-sm mt-3 text-center"></p>
-    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v33</p>
+    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v34</p>
   </div>
 </div>
 
@@ -49,6 +49,10 @@
     </div>
     <p class="text-base text-gray-600 mb-4">클럽: <b id="clubCodeLabel2"></b></p>
 
+    <button onclick="openStatsPanel()" class="btn-secondary w-full bg-indigo-700 text-white py-3 rounded-xl active:bg-indigo-900 mb-4">
+      📊 통계
+    </button>
+
     <div class="bg-green-50 border-2 border-green-300 rounded-xl p-3 mb-4">
       <p class="text-base font-bold mb-2">➕ 새 대회 시작</p>
       <input id="newEventTitle" type="text" placeholder="예: 8월 정기모임"
@@ -58,11 +62,7 @@
     </div>
 
     <p class="text-base font-bold mb-2">📋 지난 대회 목록</p>
-    <div id="eventList" class="space-y-2 mb-4"></div>
-
-    <button onclick="openStatsPanel()" class="btn-secondary w-full bg-indigo-700 text-white py-3 rounded-xl active:bg-indigo-900">
-      📊 기간별 집계 (상금왕 · 향상왕)
-    </button>
+    <div id="eventList" class="space-y-2"></div>
   </div>
 </div>
 
@@ -110,15 +110,19 @@
     <h1 class="text-2xl font-extrabold text-center mb-2">뭘 하실 건가요?</h1>
     <p id="modeGateEventTitle" class="text-base text-gray-600 text-center mb-6"></p>
 
-    <button onclick="enterModeGuarded('admin')" class="btn-primary w-full bg-green-700 text-white py-4 rounded-xl active:bg-green-900 mb-3">
-      🕵️ 주최측의 농간<br><span class="text-sm font-normal">(총무 모드) 비밀번호 필요 · 전체 관리</span>
-    </button>
-    <button onclick="enterModeGuarded('member')" class="btn-primary w-full bg-blue-600 text-white py-4 rounded-xl active:bg-blue-800 mb-3">
-      🙋 나는 몇 조? 몇 등? 얼마?<br><span class="text-sm font-normal">(회원 모드) 조편성·순위·상금 확인</span>
-    </button>
-    <button onclick="enterModeGuarded('captain')" class="btn-primary w-full bg-teal-600 text-white py-4 rounded-xl active:bg-teal-800">
-      🏠 우리 조 점수 입력<br><span class="text-sm font-normal">(방장 모드) 우리 조 핸디캡·스코어 입력</span>
-    </button>
+    <div class="grid grid-cols-2 gap-3">
+      <button onclick="enterModeGuarded('admin')" class="btn-primary bg-green-700 text-white rounded-xl active:bg-green-900 py-4 flex flex-col items-center justify-center h-full">
+        🕵️<span class="text-base mt-1">주최측의<br>농간</span><span class="text-xs font-normal mt-1">(총무 모드)</span>
+      </button>
+      <div class="flex flex-col gap-3">
+        <button onclick="enterModeGuarded('viewGroups')" class="btn-primary bg-blue-600 text-white rounded-xl active:bg-blue-800 py-4">
+          🙋 조편성<br><span class="text-xs font-normal">보기 · 공유</span>
+        </button>
+        <button onclick="enterModeGuarded('viewResults')" class="btn-primary bg-teal-600 text-white rounded-xl active:bg-teal-800 py-4">
+          🏆 경기 결과<br><span class="text-xs font-normal">보기 · 공유</span>
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -610,12 +614,11 @@ function calcMoneyForEvent(data){
   // 핸디캡 보정 규칙:
   //  - 음수: 최종스코어에서 그만큼 뺌 (score + handicap, handicap이 음수이므로 감소)
   //  - 0 이상 18 미만: 최종스코어에 영향 없음
-  //  - 18 이상: 클럽 최고핸디캡(18)을 초과하는 만큼은 인정하지 않고, 18만큼만 뺌
+  //  - 0 이상: 최종스코어에 영향 없음 (조편성 균형에만 사용)
   const netScore = p => {
     if(scoresObj[p.name] == null) return null;
     const h = p.handicap || 0;
     if(h < 0) return scoresObj[p.name] + h;
-    if(h >= 18) return scoresObj[p.name] - 18;
     return scoresObj[p.name];
   };
   const ranked = todayArr.filter(p=>scoresObj[p.name]!=null)
@@ -712,10 +715,13 @@ async function runPeriodStats(){
     const prizeTotals = {};
     const handicapSeries = {};
     const idByName = {};
+    const pairCounts = {}; // "이름1|이름2" -> 같은 조 횟수
+    const clubRecords = []; // 대회별 순위 + 조편성 기록
 
     snap.forEach(doc=>{
       const data = doc.data();
       const eventDate = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate() : new Date(0);
+      const dateLabel = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate().toLocaleDateString('ko-KR') : '';
 
       const memberPrize = calcMoneyForEvent(data);
       Object.keys(memberPrize).forEach(name=>{
@@ -727,6 +733,43 @@ async function runPeriodStats(){
         if(!handicapSeries[p.name]) handicapSeries[p.name] = [];
         handicapSeries[p.name].push({ date: eventDate, handicap: p.handicap });
       });
+
+      // 이 대회의 핸디 적용 순위 계산
+      const eventScores = data.scores || {};
+      const eventRanking = (data.today||[])
+        .filter(p => eventScores[p.name] != null)
+        .map(p => {
+          const h = p.handicap || 0;
+          const net = h < 0 ? eventScores[p.name] + h : eventScores[p.name];
+          return { name: p.name, id: p.id, net };
+        })
+        .sort((a,b)=> a.net - b.net);
+
+      // 이 대회의 조편성 (아이디/이름 목록)
+      const eventGroups = data.groups ? data.groups.map(g => (g.members||g).map(p=>p.id||p.name)) : null;
+
+      if(eventRanking.length > 0 || eventGroups){
+        clubRecords.push({
+          title: data.title || '이름없는 대회',
+          dateLabel,
+          date: eventDate,
+          ranking: eventRanking,
+          groups: eventGroups
+        });
+      }
+
+      // 같은 조에 속했던 조합(인연) 집계
+      if(data.groups){
+        data.groups.forEach(g=>{
+          const members = (g.members||g).map(p=>p.name);
+          for(let i=0;i<members.length;i++){
+            for(let j=i+1;j<members.length;j++){
+              const key = [members[i], members[j]].sort().join('|');
+              pairCounts[key] = (pairCounts[key]||0) + 1;
+            }
+          }
+        });
+      }
     });
 
     const prizeRanking = Object.keys(prizeTotals)
@@ -745,20 +788,42 @@ async function runPeriodStats(){
       .filter(x=>x)
       .sort((a,b)=> b.improvement - a.improvement);
 
-    renderStatsResult(prizeRanking, improveRanking, snap.size);
+    // 평균 핸디캡
+    const avgHandicapList = Object.keys(handicapSeries)
+      .map(name=>{
+        const series = handicapSeries[name];
+        const avg = series.reduce((s,x)=>s+x.handicap,0) / series.length;
+        return { name, id: idByName[name], avg, count: series.length };
+      })
+      .sort((a,b)=> a.avg - b.avg);
+
+    // 인연 Top3
+    const pairTop3 = Object.keys(pairCounts)
+      .map(key=>{
+        const [n1, n2] = key.split('|');
+        return { n1, n2, id1: idByName[n1], id2: idByName[n2], count: pairCounts[key] };
+      })
+      .sort((a,b)=> b.count - a.count)
+      .slice(0, 3);
+
+    clubRecords.sort((a,b)=> a.date - b.date);
+
+    renderStatsResult(prizeRanking, improveRanking, snap.size, avgHandicapList, pairTop3, clubRecords);
   } catch(err){
     console.error(err);
     resultBox.innerHTML = `<p class="text-red-600 text-center py-4">집계 중 오류: ${err.message}</p>`;
   }
 }
 
-function renderStatsResult(prizeRanking, improveRanking, eventCount){
+function renderStatsResult(prizeRanking, improveRanking, eventCount, avgHandicapList, pairTop3, clubRecords){
   const box = document.getElementById('statsResult');
   box.innerHTML = `
     <p class="text-sm text-gray-500 mb-3">집계 대상: 대회 ${eventCount}개</p>
 
-    <div class="bg-orange-50 border-2 border-orange-300 rounded-xl p-3 mb-4">
-      <p class="text-lg font-extrabold mb-2">💰 상금왕 순위 (합산 상금)</p>
+    <p class="text-lg font-extrabold mb-2 mt-2">👥 ① 기간별 회원 기록</p>
+
+    <div class="bg-orange-50 border-2 border-orange-300 rounded-xl p-3 mb-3">
+      <p class="text-base font-extrabold mb-2">💰 상금왕 순위 (합산 상금)</p>
       ${prizeRanking.length ? prizeRanking.map((r,i)=>`
         <div class="flex justify-between items-center py-1 ${i===0?'font-extrabold text-orange-700 text-lg':'text-base'}">
           <span>${i+1}위 ${i===0?'👑 ':''}${escapeHtml(r.id||r.name)}</span>
@@ -766,8 +831,8 @@ function renderStatsResult(prizeRanking, improveRanking, eventCount){
         </div>`).join('') : '<p class="text-gray-400 text-center py-2">상금 기록이 없습니다.</p>'}
     </div>
 
-    <div class="bg-blue-50 border-2 border-blue-300 rounded-xl p-3">
-      <p class="text-lg font-extrabold mb-2">📈 향상왕 순위 (핸디캡 감소량)</p>
+    <div class="bg-blue-50 border-2 border-blue-300 rounded-xl p-3 mb-3">
+      <p class="text-base font-extrabold mb-2">📈 향상왕 순위 (핸디캡 감소량)</p>
       <p class="text-xs text-gray-500 mb-2">기간 내 첫 대회 핸디캡 → 마지막 대회 핸디캡 기준 (최소 2회 이상 참가자만 집계)</p>
       ${improveRanking.length ? improveRanking.map((r,i)=>`
         <div class="flex justify-between items-center py-1 ${i===0?'font-extrabold text-blue-700 text-lg':'text-base'}">
@@ -775,6 +840,38 @@ function renderStatsResult(prizeRanking, improveRanking, eventCount){
           <span>${r.first} → ${r.last} (${r.improvement>0?'-':'+'}${Math.abs(r.improvement).toFixed(1)})</span>
         </div>`).join('') : '<p class="text-gray-400 text-center py-2">2회 이상 참가한 회원이 없습니다.</p>'}
     </div>
+
+    <div class="bg-green-50 border-2 border-green-300 rounded-xl p-3 mb-3">
+      <p class="text-base font-extrabold mb-2">📊 회원별 평균 핸디캡</p>
+      ${avgHandicapList && avgHandicapList.length ? avgHandicapList.map(r=>`
+        <div class="flex justify-between items-center py-1 text-base">
+          <span>${escapeHtml(r.id||r.name)}</span>
+          <span>평균 ${r.avg.toFixed(1)} (${r.count}회 참가)</span>
+        </div>`).join('') : '<p class="text-gray-400 text-center py-2">기록이 없습니다.</p>'}
+    </div>
+
+    <div class="bg-pink-50 border-2 border-pink-300 rounded-xl p-3 mb-4">
+      <p class="text-base font-extrabold mb-2">💞 인연 Top3 (같은 조 최다 횟수)</p>
+      ${pairTop3 && pairTop3.length ? pairTop3.map((p,i)=>`
+        <div class="flex justify-between items-center py-1 ${i===0?'font-extrabold text-pink-700 text-lg':'text-base'}">
+          <span>${i+1}위 ${escapeHtml(p.id1||p.n1)} ↔ ${escapeHtml(p.id2||p.n2)}</span>
+          <span>${p.count}회</span>
+        </div>`).join('') : '<p class="text-gray-400 text-center py-2">같은 조 기록이 없습니다.</p>'}
+    </div>
+
+    <p class="text-lg font-extrabold mb-2 mt-4">🏌️ ② 기간별 클럽 기록</p>
+    ${clubRecords && clubRecords.length ? clubRecords.map(ev=>`
+      <div class="bg-gray-50 border-2 border-gray-300 rounded-xl p-3 mb-3">
+        <p class="text-base font-extrabold mb-1">${escapeHtml(ev.title)} <span class="text-xs text-gray-500 font-normal">(${ev.dateLabel})</span></p>
+        ${ev.ranking.length ? `
+        <p class="text-sm font-bold text-gray-600 mt-2 mb-1">핸디적용타수 순위</p>
+        <div class="text-sm text-gray-700">${ev.ranking.map((r,i)=>`${i+1}. ${escapeHtml(r.id||r.name)} ${formatScore(r.net)}`).join(' · ')}</div>
+        ` : ''}
+        ${ev.groups ? `
+        <p class="text-sm font-bold text-gray-600 mt-2 mb-1">조편성</p>
+        <div class="text-sm text-gray-700">${ev.groups.map((g,gi)=>`${gi+1}조: ${g.map(n=>escapeHtml(n)).join(', ')}`).join(' / ')}</div>
+        ` : ''}
+      </div>`).join('') : '<p class="text-gray-400 text-center py-2">기록이 없습니다.</p>'}
   `;
 }
 
@@ -873,6 +970,8 @@ function enterMode(mode){
   let defaultTab = 'members';
   if(mode === 'member') defaultTab = 'groups';
   if(mode === 'captain') defaultTab = 'groupscore';
+  if(mode === 'viewGroups') defaultTab = 'groups';
+  if(mode === 'viewResults') defaultTab = 'money';
   showTab(defaultTab);
 }
 
@@ -880,7 +979,9 @@ function applyModeUI(){
   const isAdmin = (userMode === 'admin');
   const isMember = (userMode === 'member');
   const isCaptain = (userMode === 'captain');
-  const restricted = !isAdmin; // member, captain 모두 관리 기능은 숨김
+  const isViewGroups = (userMode === 'viewGroups');
+  const isViewResults = (userMode === 'viewResults');
+  const restricted = !isAdmin; // 총무 외 전부 관리 기능은 숨김
 
   // 회원/참가자/스코어 탭: 총무만 접근
   ['members','today','score'].forEach(t=>{
@@ -893,11 +994,18 @@ function applyModeUI(){
   // 조스코어 탭: 방장 모드만 접근
   const groupscoreBtn = document.getElementById('nav-groupscore');
   if(groupscoreBtn) groupscoreBtn.classList.toggle('hidden', !isCaptain);
+  // 조편성/정산 탭: '조편성 보기'는 조편성만, '경기결과 보기'는 정산만 단독 노출
+  const groupsBtn = document.getElementById('nav-groups');
+  const moneyBtn = document.getElementById('nav-money');
+  if(isViewGroups){ if(groupsBtn) groupsBtn.classList.remove('hidden'); if(moneyBtn) moneyBtn.classList.add('hidden'); }
+  else if(isViewResults){ if(groupsBtn) groupsBtn.classList.add('hidden'); if(moneyBtn) moneyBtn.classList.remove('hidden'); }
+  else { if(groupsBtn) groupsBtn.classList.remove('hidden'); if(moneyBtn) moneyBtn.classList.remove('hidden'); }
 
   const grid = document.querySelector('nav.grid');
   if(grid){
     if(isAdmin) grid.className = 'grid grid-cols-5 gap-1 p-2 bg-white sticky top-[76px] z-10 shadow';
     else if(isMember || isCaptain) grid.className = 'grid grid-cols-3 gap-1 p-2 bg-white sticky top-[76px] z-10 shadow';
+    else if(isViewGroups || isViewResults) grid.className = 'grid grid-cols-1 gap-1 p-2 bg-white sticky top-[76px] z-10 shadow';
     else grid.className = 'grid grid-cols-2 gap-1 p-2 bg-white sticky top-[76px] z-10 shadow';
   }
   // 잠금(입력완료) 바는 총무만 필요
@@ -911,7 +1019,7 @@ function applyModeUI(){
   });
   const modeBadge = document.getElementById('modeBadge');
   if(modeBadge){
-    modeBadge.textContent = isAdmin ? '🕵️ 주최측의 농간' : (isCaptain ? '🏠 방장 모드' : '🙋 회원 모드');
+    modeBadge.textContent = isAdmin ? '🕵️ 주최측의 농간' : (isCaptain ? '🏠 방장 모드' : (isViewGroups ? '🙋 조편성 보기' : (isViewResults ? '🏆 경기 결과 보기' : '🙋 회원 모드')));
   }
 }
 
@@ -1254,7 +1362,7 @@ function renderToday(){
           onfocus="this.select()"
           class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-3 py-2 text-lg text-right outline-none focus:border-green-600">
       </div>
-      <p class="text-xs text-gray-400 mt-1">※ 조편성은 이 값의 평균으로 균형을 맞춥니다. 최종스코어는 음수만 그 값만큼 빠지고, 18 이상은 18만 빠집니다(0~17은 영향 없음).</p>
+      <p class="text-xs text-gray-400 mt-1">※ 조편성은 이 값의 평균으로 균형을 맞춥니다. 최종스코어는 음수만 그 값만큼 빠지고, 양수는 얼마든 영향 없습니다.</p>
     </div>`).join('');
 
   if(activeId){
@@ -2035,13 +2143,12 @@ function escapeAttr(str){
   return String(str).replace(/'/g, "\\'");
 }
 
-/* 스코어 기반 순위 계산 — 핸디캡 보정 규칙: 음수는 그만큼 차감, 0~17은 영향 없음, 18 이상은 18만 차감(클럽 최고핸디캡 상한) */
+/* 스코어 기반 순위 계산 — 핸디캡 보정 규칙: 음수는 그만큼 차감, 0 이상은 최종스코어에 영향 없음(조편성 균형에만 사용) */
 function computeWinners(){
   const netScore = p => {
     if(scores[p.name] == null) return null;
     const h = p.handicap || 0;
     if(h < 0) return scores[p.name] + h;
-    if(h >= 18) return scores[p.name] - 18;
     return scores[p.name];
   };
 
@@ -2293,7 +2400,6 @@ function updateEventSplit(key, val){
 function handicapBasisText(gross, handicap){
   const h = handicap || 0;
   if(h < 0) return `총타수 ${gross} - 핸디 ${Math.abs(h)} = 넷 ${gross+h}`;
-  if(h >= 18) return `총타수 ${gross} - 상한핸디 18 = 넷 ${gross-18} (실제 핸디 ${h}는 18로 상한 적용)`;
   return `총타수 ${gross} (핸디 ${h}, 스코어 영향없음)`;
 }
 
@@ -2350,6 +2456,10 @@ function computeMoney(){
 
   const fullRankingLines = winners.fullRanking.map((w,i)=>
     `  ${i+1}. ${w.id||w.name} — ${formatScore(w.net)} [${handicapBasisText(w.gross, w.handicap)}]`
+  );
+
+  const rawRankingLines = [...winners.fullRanking].sort((a,b)=>a.gross-b.gross).map((w,i)=>
+    `  ${i+1}. ${w.id||w.name} — ${formatScore(w.gross)}`
   );
 
   // 조별 경쟁: 조의 평균 넷스코어로 다른 조와 순위를 겨룹니다 (조 내부 경쟁 아님)
@@ -2477,13 +2587,16 @@ function computeMoney(){
 ------------------------------
 [조 편성]
 ${groupCompositionLines.length ? groupCompositionLines.join('\n') : '  (조편성 미실시)'}
-------------------------------${showOverall ? `
-[개인 순위 — 핸디캡 반영]
+------------------------------
+[개인 순위 — 핸디캡 적용]
 ${fullRankingLines.length ? fullRankingLines.join('\n') : '  (스코어 미입력)'}
-------------------------------${shareOptions.money ? `
+------------------------------
+[개인 순위 — 핸디캡 미적용 · 총타수 기준]
+${rawRankingLines.length ? rawRankingLines.join('\n') : '  (스코어 미입력)'}
+------------------------------${(showOverall && shareOptions.money) ? `
 [개인전 상금 (${actualOverallSum.toLocaleString()}원)]
 ${overallLines.length ? overallLines.join('\n') : '  (스코어 미입력)'}
-------------------------------` : ''}` : ''}${showGroup ? `
+------------------------------` : ''}${currentGroups ? `
 [조별 순위 — 조 vs 조]
 ${groupRankLines.length ? groupRankLines.join('\n') : '  (조편성 또는 스코어 필요)'}
 ------------------------------` : ''}${(shareOptions.nearPin && showNearPin) ? `
@@ -2545,7 +2658,6 @@ ${memberTableText}
       </div>` : ''}
     </div>` : ''}
 
-    ${showOverall ? `
     <div class="bg-white rounded-2xl p-4 shadow border-2 border-green-300">
       <h3 class="text-xl font-extrabold mb-2">👤 개인전 순위표 (핸디캡 반영)</h3>
       ${winners.fullRanking.length ? `
@@ -2559,9 +2671,21 @@ ${memberTableText}
             </div>
           </div>`).join('')}
       </div>` : `<p class="text-gray-400 text-center py-2">스코어가 입력된 참가자가 없습니다.</p>`}
-    </div>` : ''}
+    </div>
 
-    ${showGroup ? `
+    <div class="bg-white rounded-2xl p-4 shadow border-2 border-gray-300">
+      <h3 class="text-xl font-extrabold mb-2">👤 개인전 순위표 (핸디캡 미적용 · 총타수 기준)</h3>
+      ${winners.fullRanking.length ? `
+      <div class="space-y-1">
+        ${[...winners.fullRanking].sort((a,b)=>a.gross-b.gross).map((w,i)=>`
+          <div class="flex justify-between items-center text-lg py-1 border-b border-gray-100">
+            <span>${i+1}위 ${escapeHtml(w.id||w.name)}</span>
+            <span class="text-base text-gray-600">${formatScore(w.gross)}</span>
+          </div>`).join('')}
+      </div>` : `<p class="text-gray-400 text-center py-2">스코어가 입력된 참가자가 없습니다.</p>`}
+    </div>
+
+    ${currentGroups ? `
     <div class="bg-white rounded-2xl p-4 shadow border-2 border-teal-300">
       <h3 class="text-xl font-extrabold mb-2">👥 조별 경쟁 순위표 (조 vs 조)</h3>
       <p class="text-sm text-gray-500 mb-2">같은 조 안에서 겨루지 않고, 조 평균 넷스코어로 다른 조와 순위를 겨룹니다.</p>
