@@ -36,7 +36,7 @@
       입장하기
     </button>
     <p id="roomGateMsg" class="text-red-600 text-sm mt-3 text-center"></p>
-    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v38</p>
+    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v39</p>
   </div>
 </div>
 
@@ -421,7 +421,8 @@ let today = [];          // {name, handicap}
 let currentGroups = null;
 let luckyExcluded = [];
 let luckyWinners = null;
-let scores = {};         // { 이름: 최종타수 }
+let scores = {};         // { 이름: 저장된 타수 (raw 여부는 scoreIsRaw 참고) }
+let scoreIsRaw = {};     // { 이름: true(핸디캡 미반영 원본 타수) } — true인 사람만 랭킹 계산시 핸디캡 전액(양수 포함) 차감
 let par3Count = 4;
 let nearPins = [];       // 홀별 니어핀 대상자 이름 배열 (길이 = par3Count)
 let holeInOnes = [];     // [{ name, prize }]
@@ -641,15 +642,15 @@ function calcMoneyForEvent(data){
   const nearPinTotal = roundTo1000(eventPrize * ((evSplit.nearPin||0)/100));
   const luckyTarget = eventPrize - nearPinTotal;
 
-  // 음수 핸디캡만 최종스코어에서 그만큼 빼고, 양수 핸디캡은 최종스코어에 영향을 주지 않습니다.
   // 핸디캡 보정 규칙:
-  //  - 음수: 최종스코어에서 그만큼 뺌 (score + handicap, handicap이 음수이므로 감소)
-  //  - 0 이상 18 미만: 최종스코어에 영향 없음
-  //  - 0 이상: 최종스코어에 영향 없음 (조편성 균형에만 사용)
+  //  - 음수: 원본/반영 여부와 무관하게 항상 그만큼 뺌 (이 클럽 고유 규칙)
+  //  - 양수: "핸디캡 미반영 원본 타수"로 등록된 경우만 전액 차감, 그 외에는 영향 없음
+  const scoreIsRawObj = data.scoreIsRaw || {};
   const netScore = p => {
     if(scoresObj[p.name] == null) return null;
     const h = p.handicap || 0;
     if(h < 0) return scoresObj[p.name] + h;
+    if(scoreIsRawObj[p.name] && h > 0) return scoresObj[p.name] - h;
     return scoresObj[p.name];
   };
   const ranked = todayArr.filter(p=>scoresObj[p.name]!=null)
@@ -767,11 +768,15 @@ async function runPeriodStats(){
 
       // 이 대회의 핸디 적용 순위 계산
       const eventScores = data.scores || {};
+      const eventScoreIsRaw = data.scoreIsRaw || {};
       const eventRanking = (data.today||[])
         .filter(p => eventScores[p.name] != null)
         .map(p => {
           const h = p.handicap || 0;
-          const net = h < 0 ? eventScores[p.name] + h : eventScores[p.name];
+          let net;
+          if(h < 0) net = eventScores[p.name] + h;
+          else if(eventScoreIsRaw[p.name] && h > 0) net = eventScores[p.name] - h;
+          else net = eventScores[p.name];
           return { name: p.name, id: p.id, net };
         })
         .sort((a,b)=> a.net - b.net);
@@ -941,7 +946,8 @@ function createEvent(){
       today: [], groups: null, scores: {}, par3Count: 4, nearPins: [], luckyExcluded: [], luckyWinners: null,
       groupSize: 4, feePerPerson: 5000, prizeRules: defaultPrizeRules(),
       holeInOnes: [], locked: false, lockPin: '', luckyCount: 2, groupPrizeOverride: {},
-      shareOptions: { nearPin: true, lucky: true, money: true }
+      shareOptions: { nearPin: true, lucky: true, money: true },
+      scoreIsRaw: {}
     });
     const timeoutPromise = new Promise((_, reject)=>
       setTimeout(()=> reject(new Error('네트워크 응답이 너무 오래 걸립니다. 인터넷 연결/Firestore 설정을 확인해 주세요.')), 8000)
@@ -1084,6 +1090,7 @@ function attachEventListener(){
     luckyExcluded = data.luckyExcluded || [];
     luckyWinners = data.luckyWinners || null;
     if(!scorePushPending) scores = data.scores || {};
+    scoreIsRaw = data.scoreIsRaw || {};
     par3Count = (typeof data.par3Count === 'number') ? data.par3Count : 4;
     nearPins = data.nearPins || [];
     groupSize = (typeof data.groupSize === 'number') ? data.groupSize : 4;
@@ -1372,20 +1379,21 @@ function applyScorePaste(){
     if(score === null){ unmatched.push(line); return; }
     const participant = today.find(p => (p.id && p.id === label) || p.name === label);
     if(participant){
-      let finalScore = score;
-      if(pasteType === 'raw'){
-        // 핸디캡 미반영 총타수: 양수 핸디캡만 차감합니다. 음수 핸디캡은 여기서 더 뺄 것이 없습니다(최저 0).
-        const h = participant.handicap || 0;
-        if(h > 0) finalScore = Math.round(score - h);
-      }
-      scores[participant.name] = finalScore;
-      matched.push(`${label} → ${formatScore(finalScore)}${pasteType==='raw' && (participant.handicap||0)>0 ? ` (${score}타 - 핸디${participant.handicap})` : ''}`);
+      // 원본 숫자를 그대로 저장합니다(가공하지 않음). 핸디캡 반영 여부는 scoreIsRaw 플래그로만 구분하고,
+      // 실제 차감은 순위 계산 시점(computeWinners 등)에서 이 플래그를 보고 처리합니다.
+      scores[participant.name] = score;
+      if(pasteType === 'raw') scoreIsRaw[participant.name] = true;
+      else delete scoreIsRaw[participant.name];
+
+      const h = participant.handicap || 0;
+      const previewNet = (pasteType === 'raw') ? Math.round(score - h) : score;
+      matched.push(`${label} → 원본 ${formatScore(score)}${pasteType==='raw' && h ? ` (핸디반영시 ${formatScore(previewNet)})` : ''}`);
     } else {
       unmatched.push(line);
     }
   });
 
-  pushState({ scores });
+  pushState({ scores, scoreIsRaw });
   renderScoreTab();
 
   const typeLabel = pasteType === 'raw' ? '핸디캡 반영 안 된 총타수로' : '핸디캡 반영된 점수로';
@@ -1502,10 +1510,11 @@ function updateScore(name, val){
   const v = parseScoreInput(val);
   if(val === '' || v === null) delete scores[name];
   else scores[name] = v;
+  if(scoreIsRaw[name]) delete scoreIsRaw[name]; // 수동으로 다시 입력하면 "이미 반영된 값"으로 취급
   clearTimeout(scoreDebounce[name]);
   scorePushPending = true;
   scoreDebounce[name] = setTimeout(()=>{
-    pushState({ scores }).then(()=>{ scorePushPending = false; });
+    pushState({ scores, scoreIsRaw }).then(()=>{ scorePushPending = false; });
   }, 400);
 }
 
@@ -1667,6 +1676,7 @@ function updateMyScore(val){
   const v = parseScoreInput(val);
   if(val === '' || v === null) delete scores[myPlayerName];
   else scores[myPlayerName] = v;
+  if(scoreIsRaw[myPlayerName]) delete scoreIsRaw[myPlayerName];
 
   const msgEl = document.getElementById('myScoreSavedMsg');
   if(msgEl) msgEl.textContent = '저장 중...';
@@ -1674,7 +1684,7 @@ function updateMyScore(val){
   clearTimeout(scoreDebounce[myPlayerName]);
   scorePushPending = true;
   scoreDebounce[myPlayerName] = setTimeout(()=>{
-    pushState({ scores }).then(()=>{
+    pushState({ scores, scoreIsRaw }).then(()=>{
       scorePushPending = false;
       if(msgEl) msgEl.textContent = '✅ 저장되었습니다.';
     });
@@ -1791,6 +1801,7 @@ function updateGroupMemberScore(name, val){
   const v = parseScoreInput(val);
   if(val === '' || v === null) delete scores[name];
   else scores[name] = v;
+  if(scoreIsRaw[name]) delete scoreIsRaw[name];
 
   const msgEl = document.getElementById('groupScoreSavedMsg');
   if(msgEl) msgEl.textContent = '저장 중...';
@@ -1798,7 +1809,7 @@ function updateGroupMemberScore(name, val){
   clearTimeout(scoreDebounce[name]);
   scorePushPending = true;
   scoreDebounce[name] = setTimeout(()=>{
-    pushState({ scores }).then(()=>{
+    pushState({ scores, scoreIsRaw }).then(()=>{
       scorePushPending = false;
       if(msgEl) msgEl.textContent = '✅ 저장되었습니다.';
     });
@@ -2333,8 +2344,9 @@ function computeWinners(){
   const netScore = p => {
     if(scores[p.name] == null) return null;
     const h = p.handicap || 0;
-    if(h < 0) return scores[p.name] + h;
-    return scores[p.name];
+    if(h < 0) return scores[p.name] + h; // 음수 핸디캡: 원본/적용 여부와 무관하게 항상 동일하게 차감(이 클럽 고유 규칙)
+    if(scoreIsRaw[p.name] && h > 0) return scores[p.name] - h; // 핸디캡 미반영 원본 타수 + 양수 핸디캡만 전액 차감
+    return scores[p.name]; // 그 외(이미 반영된 값의 양수 핸디캡, 또는 핸디캡 0)는 영향 없음
   };
 
   const ranked = today.filter(p => scores[p.name] != null)
@@ -2582,12 +2594,17 @@ function updateEventSplit(key, val){
 }
 
 /* ===================== 정산 ===================== */
-function handicapBasisText(gross, handicap){
+function handicapBasisText(gross, handicap, isRaw){
   const h = handicap || 0;
   if(h < 0){
     const net = Math.round((gross + h) * 10) / 10;
     const netStr = Number.isInteger(net) ? `${net}` : net.toFixed(1);
     return `총타수 ${gross} - 핸디 ${Math.abs(h)} = 넷 ${netStr}`;
+  }
+  if(isRaw && h > 0){
+    const net = Math.round((gross - h) * 10) / 10;
+    const netStr = Number.isInteger(net) ? `${net}` : net.toFixed(1);
+    return `원본 총타수 ${gross} - 핸디 ${h} = 넷 ${netStr} (핸디미반영 원본으로 등록됨)`;
   }
   return `총타수 ${gross} (핸디 ${h}, 스코어 영향없음)`;
 }
@@ -2644,7 +2661,7 @@ function computeMoney(){
   });
 
   const fullRankingLines = winners.fullRanking.map((w,i)=>
-    `  ${i+1}. ${w.id||w.name} — ${formatScore(w.net)} [${handicapBasisText(w.gross, w.handicap)}]`
+    `  ${i+1}. ${w.id||w.name} — ${formatScore(w.net)} [${handicapBasisText(w.gross, w.handicap, scoreIsRaw[w.name])}]`
   );
 
   const rawRankingLines = [...winners.fullRanking].sort((a,b)=>a.gross-b.gross).map((w,i)=>
@@ -2856,7 +2873,7 @@ ${memberTableText}
             <span>${i+1}위 ${escapeHtml(w.id||w.name)}</span>
             <div class="text-right">
               <div class="text-base">${formatScore(w.net)}</div>
-              <div class="text-xs text-gray-400">${formatScore(w.gross)}${w.handicap ? ` · 핸디 ${w.handicap>0?'+':''}${w.handicap}` : ''}</div>
+              <div class="text-xs text-gray-400">${formatScore(w.gross)}${w.handicap ? ` · 핸디 ${w.handicap>0?'+':''}${w.handicap}` : ''}${scoreIsRaw[w.name] ? ' · 원본' : ''}</div>
             </div>
           </div>`).join('')}
       </div>` : `<p class="text-gray-400 text-center py-2">스코어가 입력된 참가자가 없습니다.</p>`}
