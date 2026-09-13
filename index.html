@@ -36,7 +36,7 @@
       입장하기
     </button>
     <p id="roomGateMsg" class="text-red-600 text-sm mt-3 text-center"></p>
-    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v39</p>
+    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v40</p>
   </div>
 </div>
 
@@ -649,8 +649,12 @@ function calcMoneyForEvent(data){
   const netScore = p => {
     if(scoresObj[p.name] == null) return null;
     const h = p.handicap || 0;
+    if(scoreIsRawObj[p.name]){
+      // 핸디캡 미반영 원본 타수: 양수만 차감, 음수는 최저 0으로 간주해 영향 없음
+      return h > 0 ? scoresObj[p.name] - h : scoresObj[p.name];
+    }
+    // 이미 반영된 값: 음수만 추가 차감, 양수는 영향 없음
     if(h < 0) return scoresObj[p.name] + h;
-    if(scoreIsRawObj[p.name] && h > 0) return scoresObj[p.name] - h;
     return scoresObj[p.name];
   };
   const ranked = todayArr.filter(p=>scoresObj[p.name]!=null)
@@ -774,9 +778,8 @@ async function runPeriodStats(){
         .map(p => {
           const h = p.handicap || 0;
           let net;
-          if(h < 0) net = eventScores[p.name] + h;
-          else if(eventScoreIsRaw[p.name] && h > 0) net = eventScores[p.name] - h;
-          else net = eventScores[p.name];
+          if(eventScoreIsRaw[p.name]) net = h > 0 ? eventScores[p.name] - h : eventScores[p.name];
+          else net = h < 0 ? eventScores[p.name] + h : eventScores[p.name];
           return { name: p.name, id: p.id, net };
         })
         .sort((a,b)=> a.net - b.net);
@@ -2344,9 +2347,13 @@ function computeWinners(){
   const netScore = p => {
     if(scores[p.name] == null) return null;
     const h = p.handicap || 0;
-    if(h < 0) return scores[p.name] + h; // 음수 핸디캡: 원본/적용 여부와 무관하게 항상 동일하게 차감(이 클럽 고유 규칙)
-    if(scoreIsRaw[p.name] && h > 0) return scores[p.name] - h; // 핸디캡 미반영 원본 타수 + 양수 핸디캡만 전액 차감
-    return scores[p.name]; // 그 외(이미 반영된 값의 양수 핸디캡, 또는 핸디캡 0)는 영향 없음
+    if(scoreIsRaw[p.name]){
+      // 핸디캡 미반영 원본 타수: 양수 핸디캡만 차감. 음수 핸디캡은 최저 0으로 간주해 영향 없음.
+      return h > 0 ? scores[p.name] - h : scores[p.name];
+    }
+    // 이미 핸디캡이 반영된 값: 음수 핸디캡만 추가로 차감(이 클럽 고유 보정). 양수는 영향 없음.
+    if(h < 0) return scores[p.name] + h;
+    return scores[p.name];
   };
 
   const ranked = today.filter(p => scores[p.name] != null)
@@ -2596,15 +2603,18 @@ function updateEventSplit(key, val){
 /* ===================== 정산 ===================== */
 function handicapBasisText(gross, handicap, isRaw){
   const h = handicap || 0;
+  if(isRaw){
+    if(h > 0){
+      const net = Math.round((gross - h) * 10) / 10;
+      const netStr = Number.isInteger(net) ? `${net}` : net.toFixed(1);
+      return `원본 총타수 ${gross} - 핸디 ${h} = 넷 ${netStr} (핸디미반영 원본으로 등록됨)`;
+    }
+    return `원본 총타수 ${gross} (핸디 ${h}, 음수/0은 원본에 영향없음)`;
+  }
   if(h < 0){
     const net = Math.round((gross + h) * 10) / 10;
     const netStr = Number.isInteger(net) ? `${net}` : net.toFixed(1);
     return `총타수 ${gross} - 핸디 ${Math.abs(h)} = 넷 ${netStr}`;
-  }
-  if(isRaw && h > 0){
-    const net = Math.round((gross - h) * 10) / 10;
-    const netStr = Number.isInteger(net) ? `${net}` : net.toFixed(1);
-    return `원본 총타수 ${gross} - 핸디 ${h} = 넷 ${netStr} (핸디미반영 원본으로 등록됨)`;
   }
   return `총타수 ${gross} (핸디 ${h}, 스코어 영향없음)`;
 }
