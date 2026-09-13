@@ -36,7 +36,7 @@
       입장하기
     </button>
     <p id="roomGateMsg" class="text-red-600 text-sm mt-3 text-center"></p>
-    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v37</p>
+    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v38</p>
   </div>
 </div>
 
@@ -453,9 +453,13 @@ function parseScoreInput(str){
 // 저장된 실제 타수를 "75타 (+3)" 형태로 표시합니다.
 function formatScore(strokes){
   if(strokes == null || isNaN(strokes)) return '-';
-  const diff = strokes - PAR;
-  const diffStr = diff > 0 ? `+${diff}` : `${diff}`;
-  return `${strokes}타 (${diffStr})`;
+  const rounded = Math.round(strokes*10)/10;
+  const diffRounded = Math.round((rounded - PAR)*10)/10;
+  const strokesStr = Number.isInteger(rounded) ? `${rounded}` : rounded.toFixed(1);
+  const diffStr = Number.isInteger(diffRounded)
+    ? (diffRounded>0 ? `+${diffRounded}` : `${diffRounded}`)
+    : (diffRounded>0 ? `+${diffRounded.toFixed(1)}` : diffRounded.toFixed(1));
+  return `${strokesStr}타 (${diffStr})`;
 }
 
 // 소수(평균) 타수도 "76.3타 (+4.3)" 형태로 표시합니다.
@@ -2580,7 +2584,11 @@ function updateEventSplit(key, val){
 /* ===================== 정산 ===================== */
 function handicapBasisText(gross, handicap){
   const h = handicap || 0;
-  if(h < 0) return `총타수 ${gross} - 핸디 ${Math.abs(h)} = 넷 ${gross+h}`;
+  if(h < 0){
+    const net = Math.round((gross + h) * 10) / 10;
+    const netStr = Number.isInteger(net) ? `${net}` : net.toFixed(1);
+    return `총타수 ${gross} - 핸디 ${Math.abs(h)} = 넷 ${netStr}`;
+  }
   return `총타수 ${gross} (핸디 ${h}, 스코어 영향없음)`;
 }
 
