@@ -36,7 +36,7 @@
       입장하기
     </button>
     <p id="roomGateMsg" class="text-red-600 text-sm mt-3 text-center"></p>
-    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v35</p>
+    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v37</p>
   </div>
 </div>
 
@@ -254,6 +254,33 @@
         <p class="text-sm text-gray-500 mb-3">각 조에서 찍어온 스코어카드 사진을 보고, 아래에 직접 숫자를 입력해 주세요.<br>
         <b>타수를 그대로</b> 입력해도 되고(예: 82), <b>파72 기준 과부족</b>으로 입력해도 됩니다(예: +10, -2).</p>
         <div id="scoreList" class="space-y-3"></div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-4 shadow border-2 border-yellow-400">
+        <button onclick="toggleScorePaste()" class="btn-secondary w-full bg-yellow-500 text-white py-3 rounded-xl active:bg-yellow-600">
+          📋 스코어 일괄 붙여넣기
+        </button>
+        <div id="scorePasteBox" class="hidden mt-3">
+          <p class="text-sm text-gray-500 mb-2">"아이디  점수" 형태로 한 줄씩 붙여넣으세요. 점수는 타수(예: 82) 또는 파72 기준 과부족(예: +10, -2) 모두 가능합니다.</p>
+          <textarea id="scorePasteInput" rows="6" placeholder="예:&#10;QPD 82&#10;수지도 +6&#10;태리매비 79"
+            class="w-full border-2 border-gray-300 rounded-xl px-3 py-3 text-base outline-none focus:border-yellow-500"></textarea>
+
+          <p class="text-sm font-bold text-gray-600 mt-3 mb-1">붙여넣는 점수는 어떤 값인가요?</p>
+          <div class="flex gap-2 mb-2">
+            <label class="flex-1 flex items-center justify-center gap-1 border-2 border-gray-300 rounded-lg py-2 text-sm">
+              <input type="radio" name="scorePasteType" value="applied" checked class="accent-yellow-600"> 핸디캡 반영된 점수
+            </label>
+            <label class="flex-1 flex items-center justify-center gap-1 border-2 border-gray-300 rounded-lg py-2 text-sm">
+              <input type="radio" name="scorePasteType" value="raw" class="accent-yellow-600"> 핸디캡 반영 안 된 총타수
+            </label>
+          </div>
+          <p class="text-xs text-gray-400 mb-2">※ "핸디캡 반영 안 된 총타수"를 선택하면, 저장할 때 <b>등록된 양수 핸디캡만 그 자리에서 차감</b>합니다 (음수 핸디캡은 최저 0이라 더 뺄 것이 없어 그대로 저장). "핸디캡 반영된 점수"는 입력한 숫자를 그대로 저장합니다.</p>
+
+          <button onclick="applyScorePaste()" class="btn-primary w-full bg-yellow-600 text-white py-3 rounded-xl active:bg-yellow-700 mt-2">
+            적용하기
+          </button>
+          <p id="scorePasteResult" class="text-sm mt-2"></p>
+        </div>
       </div>
 
       <div class="bg-white rounded-2xl p-4 shadow border-2 border-emerald-300">
@@ -1307,6 +1334,58 @@ function applyHandicapPaste(){
   renderToday();
 
   let msg = `✅ ${matched.length}명 반영 완료.`;
+  if(unmatched.length>0){
+    msg += ` ⚠️ 매칭 안 된 줄(${unmatched.length}개): ${unmatched.join(' / ')} — 아이디/이름 철자를 확인해 주세요.`;
+  }
+  resultEl.textContent = msg;
+  resultEl.className = 'text-sm mt-2 ' + (unmatched.length>0 ? 'text-red-600 font-bold' : 'text-green-600');
+}
+
+/* ===================== 스코어 일괄 붙여넣기 ===================== */
+function toggleScorePaste(){
+  const box = document.getElementById('scorePasteBox');
+  if(box) box.classList.toggle('hidden');
+}
+
+function applyScorePaste(){
+  if(checkLocked()) return;
+  const raw = document.getElementById('scorePasteInput').value;
+  const typeEl = document.querySelector('input[name="scorePasteType"]:checked');
+  const pasteType = typeEl ? typeEl.value : 'applied'; // 'applied' | 'raw'
+  const resultEl = document.getElementById('scorePasteResult');
+  const lines = raw.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
+  if(lines.length===0){ resultEl.textContent = '붙여넣은 내용이 없습니다.'; resultEl.className='text-sm mt-2 text-red-600'; return; }
+
+  const matched = [];
+  const unmatched = [];
+
+  lines.forEach(line=>{
+    // 줄 끝의 숫자(타수 또는 +/-과부족)를 점수로, 그 앞부분을 이름/아이디로 인식
+    const m = line.match(/^(.+?)\s+([+-]?\d+(?:\.\d+)?)\s*$/);
+    if(!m){ unmatched.push(line); return; }
+    const label = m[1].trim();
+    const score = parseScoreInput(m[2]);
+    if(score === null){ unmatched.push(line); return; }
+    const participant = today.find(p => (p.id && p.id === label) || p.name === label);
+    if(participant){
+      let finalScore = score;
+      if(pasteType === 'raw'){
+        // 핸디캡 미반영 총타수: 양수 핸디캡만 차감합니다. 음수 핸디캡은 여기서 더 뺄 것이 없습니다(최저 0).
+        const h = participant.handicap || 0;
+        if(h > 0) finalScore = Math.round(score - h);
+      }
+      scores[participant.name] = finalScore;
+      matched.push(`${label} → ${formatScore(finalScore)}${pasteType==='raw' && (participant.handicap||0)>0 ? ` (${score}타 - 핸디${participant.handicap})` : ''}`);
+    } else {
+      unmatched.push(line);
+    }
+  });
+
+  pushState({ scores });
+  renderScoreTab();
+
+  const typeLabel = pasteType === 'raw' ? '핸디캡 반영 안 된 총타수로' : '핸디캡 반영된 점수로';
+  let msg = `✅ ${matched.length}명 ${typeLabel} 반영 완료 (${matched.join(', ')}).`;
   if(unmatched.length>0){
     msg += ` ⚠️ 매칭 안 된 줄(${unmatched.length}개): ${unmatched.join(' / ')} — 아이디/이름 철자를 확인해 주세요.`;
   }
