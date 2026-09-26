@@ -36,7 +36,7 @@
       입장하기
     </button>
     <p id="roomGateMsg" class="text-red-600 text-sm mt-3 text-center"></p>
-    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v40</p>
+    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v41</p>
   </div>
 </div>
 
@@ -1992,20 +1992,88 @@ function maxMinGap(groups){
   const avgs = groups.map(groupAvgHandicap);
   return Math.max(...avgs) - Math.min(...avgs);
 }
+// 붙여넣은 텍스트/이름 목록의 "아이디 또는 이름"을 실제 참가자의 name으로 변환
+function resolveParticipantName(label){
+  const p = today.find(t => (t.id && t.id === label) || t.name === label);
+  return p ? p.name : null;
+}
 
-// 핸디캡 균형은 최대한 지키면서, 최근 1~2개 대회에서 같은 조였던 조합은
-// 가능한 만큼만 다른 조로 교체(스왑)해서 피합니다. 균형이 많이 깨지면 포기하고 그대로 둡니다.
-function avoidRecentPairs(groups, recentPairs){
-  if(!recentPairs || recentPairs.size === 0) return groups;
+// 조별 평균 핸디캡의 최대-최소 격차가 목표치(기본 0.5) 미만이 될 때까지,
+// 최대 조와 최소 조 사이에서 격차를 가장 많이 줄이는 스왑을 반복합니다.
+function balanceGroups(groups, targetGap){
+  let attempts = 0;
+  while(maxMinGap(groups) >= targetGap && attempts < 300){
+    attempts++;
+    const avgs = groups.map(groupAvgHandicap);
+    const maxIdx = avgs.indexOf(Math.max(...avgs));
+    const minIdx = avgs.indexOf(Math.min(...avgs));
+    if(maxIdx === minIdx) break;
 
+    let bestSwap = null;
+    let bestGap = maxMinGap(groups);
+    for(let i=0;i<groups[maxIdx].length;i++){
+      for(let j=0;j<groups[minIdx].length;j++){
+        const a = groups[maxIdx][i], b = groups[minIdx][j];
+        groups[maxIdx][i] = b; groups[minIdx][j] = a;
+        const gap = maxMinGap(groups);
+        if(gap < bestGap){ bestGap = gap; bestSwap = {i,j}; }
+        groups[maxIdx][i] = a; groups[minIdx][j] = b; // 되돌리기
+      }
+    }
+    if(!bestSwap) break; // 더 이상 개선되는 스왑 없음
+    const a = groups[maxIdx][bestSwap.i], b = groups[minIdx][bestSwap.j];
+    groups[maxIdx][bestSwap.i] = b; groups[minIdx][bestSwap.j] = a;
+  }
+  return groups;
+}
+
+// 두 사람이 반드시 다른 조가 되도록 강제(하드 규칙). 균형이 가장 덜 깨지는 스왑을 선택합니다.
+function enforceHardSeparation(groups, name1, name2){
+  if(!name1 || !name2) return groups;
+  const gi = groups.findIndex(g => g.some(p=>p.name===name1) && g.some(p=>p.name===name2));
+  if(gi === -1) return groups; // 이미 분리되어 있음
+  const g = groups[gi];
+  const idx2 = g.findIndex(p=>p.name===name2);
+  const person2 = g[idx2];
+
+  let bestSwap = null, bestIncrease = Infinity;
+  const beforeGap = maxMinGap(groups);
+  for(let gj=0; gj<groups.length; gj++){
+    if(gj === gi) continue;
+    for(let k=0;k<groups[gj].length;k++){
+      const candidate = groups[gj][k];
+      if(candidate.name === name1) continue;
+      groups[gi][idx2] = candidate; groups[gj][k] = person2;
+      const increase = maxMinGap(groups) - beforeGap;
+      if(increase < bestIncrease){ bestIncrease = increase; bestSwap = {gj,k}; }
+      groups[gi][idx2] = person2; groups[gj][k] = candidate; // 되돌리기
+    }
+  }
+  if(bestSwap){
+    const candidate = groups[bestSwap.gj][bestSwap.k];
+    groups[gi][idx2] = candidate;
+    groups[bestSwap.gj][bestSwap.k] = person2;
+  }
+  return groups;
+}
+
+// 핸디캡 균형은 최대한 지키면서(목표 격차 미만 유지), 피하고 싶은 조합(최근 동반조 + 지정 조합)은
+// 가능한 만큼만 다른 조로 교체(스왑)해서 피합니다. 하드 분리 조합(hardPair)은 절대 재결합하지 않습니다.
+function avoidPairs(groups, avoidSet, targetGap, hardPair){
+  if(!avoidSet || avoidSet.size === 0) return groups;
+
+  function createsHardViolation(g){
+    if(!hardPair) return false;
+    const hasA = g.some(p=>p.name===hardPair[0]);
+    const hasB = g.some(p=>p.name===hardPair[1]);
+    return hasA && hasB;
+  }
   function findViolations(){
     const violations = [];
     groups.forEach((g, gi)=>{
       for(let i=0;i<g.length;i++){
         for(let j=i+1;j<g.length;j++){
-          if(hasRecentPair(recentPairs, g[i].name, g[j].name)){
-            violations.push({ gi, ai: i });
-          }
+          if(hasRecentPair(avoidSet, g[i].name, g[j].name)) violations.push({ gi, ai: i });
         }
       }
     });
@@ -2014,7 +2082,7 @@ function avoidRecentPairs(groups, recentPairs){
 
   let attempts = 0;
   let violations = findViolations();
-  while(violations.length > 0 && attempts < 60){
+  while(violations.length > 0 && attempts < 80){
     attempts++;
     const v = violations[0];
     const g = groups[v.gi];
@@ -2026,25 +2094,27 @@ function avoidRecentPairs(groups, recentPairs){
       const otherGroup = groups[gj];
       for(let k=0; k<otherGroup.length && !swapped; k++){
         const candidate = otherGroup[k];
-        const gRestOk = g.every((p,idx)=> idx===v.ai || !hasRecentPair(recentPairs, candidate.name, p.name));
-        const otherRestOk = otherGroup.every((p,idx)=> idx===k || !hasRecentPair(recentPairs, personA.name, p.name));
+        const gRestOk = g.every((p,idx)=> idx===v.ai || !hasRecentPair(avoidSet, candidate.name, p.name));
+        const otherRestOk = otherGroup.every((p,idx)=> idx===k || !hasRecentPair(avoidSet, personA.name, p.name));
         if(!gRestOk || !otherRestOk) continue;
 
+        const testG = groups.map(x=>x.slice());
+        testG[v.gi][v.ai] = candidate; testG[gj][k] = personA;
+        if(createsHardViolation(testG[v.gi]) || createsHardViolation(testG[gj])) continue;
+
         const beforeGap = maxMinGap(groups);
-        groups[v.gi][v.ai] = candidate;
-        groups[gj][k] = personA;
+        groups[v.gi][v.ai] = candidate; groups[gj][k] = personA;
         const afterGap = maxMinGap(groups);
 
-        if(afterGap <= beforeGap + 0.5){
-          swapped = true; // 균형이 크게 안 깨지면 채택
+        if(afterGap < targetGap || afterGap <= beforeGap){
+          swapped = true; // 목표 격차 미만을 유지하거나, 최소한 더 나빠지지 않으면 채택
         } else {
-          groups[v.gi][v.ai] = personA; // 되돌리기
-          groups[gj][k] = candidate;
+          groups[v.gi][v.ai] = personA; groups[gj][k] = candidate; // 되돌리기
         }
       }
     }
 
-    if(!swapped) violations.shift(); // 이번 위반은 해결 불가 → 핸디캡 균형 우선, 그대로 둠
+    if(!swapped) violations.shift(); // 이번 조합은 해결 불가 → 핸디캡 균형 우선, 그대로 둠
     violations = findViolations();
   }
   return groups;
@@ -2092,16 +2162,33 @@ async function autoGroup(){
     console.error(err);
   }
 
+  // 지정 조합 회피 규칙 반영
+  const hardName1 = resolveParticipantName('버디무니');
+  const hardName2 = resolveParticipantName('밀리언송');
+  const softCenter = resolveParticipantName('칼이씀아');
+  const softOthers = ['밀리언송','강씨씨','채린공주','짱아샷','엔젤로사'].map(resolveParticipantName).filter(Boolean);
+  const avoidSet = new Set(recentPairs);
+  if(softCenter){
+    softOthers.forEach(n=>{
+      if(n && n !== softCenter) avoidSet.add([softCenter, n].sort().join('|'));
+    });
+  }
+
+  const TARGET_GAP = 0.5;
   const sizes = computeGroupSizes(today.length, groupSize);
   let groups = zigzagAssign(today, sizes);
-  groups = avoidRecentPairs(groups, recentPairs);
+  groups = balanceGroups(groups, TARGET_GAP);
+  groups = avoidPairs(groups, avoidSet, TARGET_GAP, (hardName1 && hardName2) ? [hardName1, hardName2] : null);
+  if(hardName1 && hardName2) groups = enforceHardSeparation(groups, hardName1, hardName2);
+  groups = balanceGroups(groups, TARGET_GAP); // 하드 분리로 흔들렸을 수 있는 균형을 한 번 더 조정
   currentGroups = groups;
 
   // Firestore는 배열 안에 배열을 직접 저장할 수 없어(중첩 배열 미지원),
   // 각 조를 { members: [...] } 형태로 감싸서 저장합니다.
   pushState({ groups: currentGroups.map(g => ({ members: g })) });
   renderGroups();
-  setMsg(`${sizes.length}개 조로 편성 완료! (핸디캡 균형 우선, 최근 동반조는 가능한 만큼 피함)`, false);
+  const finalGap = maxMinGap(currentGroups).toFixed(1);
+  setMsg(`${sizes.length}개 조로 편성 완료! (조별 평균 핸디캡 격차 ${finalGap}, 최근 동반조·지정 조합은 가능한 만큼 회피)`, false);
 }
 
 function renderGroups(){
@@ -2603,20 +2690,18 @@ function updateEventSplit(key, val){
 /* ===================== 정산 ===================== */
 function handicapBasisText(gross, handicap, isRaw){
   const h = handicap || 0;
+  let net;
   if(isRaw){
-    if(h > 0){
-      const net = Math.round((gross - h) * 10) / 10;
-      const netStr = Number.isInteger(net) ? `${net}` : net.toFixed(1);
-      return `원본 총타수 ${gross} - 핸디 ${h} = 넷 ${netStr} (핸디미반영 원본으로 등록됨)`;
-    }
-    return `원본 총타수 ${gross} (핸디 ${h}, 음수/0은 원본에 영향없음)`;
+    net = h > 0 ? gross - h : gross;
+  } else {
+    net = h < 0 ? gross + h : gross;
   }
-  if(h < 0){
-    const net = Math.round((gross + h) * 10) / 10;
-    const netStr = Number.isInteger(net) ? `${net}` : net.toFixed(1);
-    return `총타수 ${gross} - 핸디 ${Math.abs(h)} = 넷 ${netStr}`;
-  }
-  return `총타수 ${gross} (핸디 ${h}, 스코어 영향없음)`;
+  net = Math.round(net * 10) / 10;
+  const applied = Math.round((gross - net) * 10) / 10;
+  const grossStr = Number.isInteger(gross) ? `${gross}` : gross.toFixed(1);
+  const appliedStr = Number.isInteger(applied) ? `${applied}` : applied.toFixed(1);
+  const netStr = Number.isInteger(net) ? `${net}` : net.toFixed(1);
+  return `${grossStr} - ${appliedStr} = ${netStr}`;
 }
 
 function computeMoney(){
