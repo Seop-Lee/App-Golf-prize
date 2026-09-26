@@ -36,7 +36,7 @@
       입장하기
     </button>
     <p id="roomGateMsg" class="text-red-600 text-sm mt-3 text-center"></p>
-    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v43</p>
+    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v44</p>
   </div>
 </div>
 
@@ -244,6 +244,18 @@
         <p id="autoGroupMsg" class="text-sm mt-2"></p>
       </div>
 
+      <div id="forbiddenPairsCard" class="bg-white rounded-2xl p-4 shadow border-2 border-red-300 text-left">
+        <h3 class="text-lg font-extrabold mb-2">🚫 같은 조 금지 설정</h3>
+        <p class="text-sm text-gray-500 mb-3">선택한 두 분은 조편성 시 반드시 다른 조로 배정됩니다.</p>
+        <div class="flex items-center gap-2 mb-2">
+          <select id="forbiddenSelectA" class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-2 py-2 text-base outline-none"></select>
+          <span class="text-gray-400">↔</span>
+          <select id="forbiddenSelectB" class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-2 py-2 text-base outline-none"></select>
+        </div>
+        <button onclick="addForbiddenPair()" class="btn-secondary w-full bg-red-600 text-white py-2 rounded-xl active:bg-red-800">추가</button>
+        <div id="forbiddenPairsList" class="space-y-2 mt-3"></div>
+      </div>
+
       <div id="groupResult" class="space-y-4"></div>
     </section>
 
@@ -431,6 +443,7 @@ let luckyCount = 2;      // 행운상 추첨 인원수
 let groupPrizeOverride = {}; // { 그룹인덱스: 1인당금액 } 총무가 수동으로 고친 조별 상금
 let groupPrizeEditMode = false; // '상금 수정' 화면 열림/닫힘 (로컬 상태, 저장 안 함)
 let shareOptions = { nearPin: true, lucky: true, money: true }; // 결과 배포 텍스트에 포함할 항목
+let forbiddenPairs = []; // [[이름1,이름2], ...] 같은 조 금지 조합 (총무가 참가자 명단에서 선택)
 let lockPin = '';        // 잠금 해제용 4자리 비밀번호 (2020은 항상 통하는 마스터 비밀번호)
 let memberEditUnlocked = false; // 회원 모드에서 '내 정보 수정' 잠금 해제 여부 (로컬 상태, 저장 안 함)
 
@@ -950,7 +963,7 @@ function createEvent(){
       groupSize: 4, feePerPerson: 5000, prizeRules: defaultPrizeRules(),
       holeInOnes: [], locked: false, lockPin: '', luckyCount: 2, groupPrizeOverride: {},
       shareOptions: { nearPin: true, lucky: true, money: true },
-      scoreIsRaw: {}
+      scoreIsRaw: {}, forbiddenPairs: []
     });
     const timeoutPromise = new Promise((_, reject)=>
       setTimeout(()=> reject(new Error('네트워크 응답이 너무 오래 걸립니다. 인터넷 연결/Firestore 설정을 확인해 주세요.')), 8000)
@@ -1053,7 +1066,7 @@ function applyModeUI(){
   if(lockBar && lockBar.parentElement) lockBar.parentElement.classList.toggle('hidden', restricted);
   const groupControls = document.getElementById('groupEditControls');
   if(groupControls) groupControls.classList.toggle('hidden', restricted);
-  ['prizeRulesCard','computeMoneyCard'].forEach(id=>{
+  ['prizeRulesCard','computeMoneyCard','forbiddenPairsCard'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.classList.toggle('hidden', restricted);
   });
@@ -1105,11 +1118,13 @@ function attachEventListener(){
     luckyCount = (typeof data.luckyCount === 'number') ? data.luckyCount : 2;
     groupPrizeOverride = data.groupPrizeOverride || {};
     shareOptions = data.shareOptions || { nearPin: true, lucky: true, money: true };
+    forbiddenPairs = data.forbiddenPairs || [];
 
     renderToday();
     renderGroups();
     renderGroupSizeButtons();
     renderLockBar();
+    if(!document.getElementById('tab-groups').classList.contains('hidden')) renderForbiddenPairsUI();
     if(!document.getElementById('tab-score').classList.contains('hidden')){ renderScoreTab(); renderHoleInOneList(); }
     if(!document.getElementById('tab-money').classList.contains('hidden')) renderPrizeRulesForm();
     if(userMode === 'member'){ renderMyPlayerSelect(); showMyScoreBox(); }
@@ -1148,6 +1163,7 @@ function showTab(name){
   if(name==='money'){ renderPrizeRulesForm(); }
   if(name==='myscore'){ renderMyEditGate(); renderMyPlayerSelect(); showMyScoreBox(); }
   if(name==='groupscore'){ renderMyGroupSelect(); showGroupScoreList(); }
+  if(name==='groups'){ renderForbiddenPairsUI(); }
 }
 
 /* ===================== 회원 관리 ===================== */
@@ -1997,10 +2013,16 @@ function resolveParticipantName(label){
   const p = today.find(t => (t.id && t.id === label) || t.name === label);
   return p ? p.name : null;
 }
+// 이 조 안에 절대 금지 조합이 있는지 확인. hardPairs는 [[name1,name2], ...] 형태.
+function violatesHardPairs(g, hardPairs){
+  if(!hardPairs || hardPairs.length === 0) return false;
+  return hardPairs.some(([n1,n2]) => g.some(p=>p.name===n1) && g.some(p=>p.name===n2));
+}
 
 // 조별 평균 핸디캡의 최대-최소 격차가 목표치(기본 0.5) 미만이 될 때까지,
 // 최대 조와 최소 조 사이에서 격차를 가장 많이 줄이는 스왑을 반복합니다.
-function balanceGroups(groups, targetGap, avoidSet){
+// 절대 금지 조합(hardPairs)은 어떤 경우에도 새로 만들지 않고, 동반조 회피(avoidSet)는 가능한 만큼만 지킵니다.
+function balanceGroups(groups, targetGap, avoidSet, hardPairs){
   let attempts = 0;
   while(maxMinGap(groups) >= targetGap && attempts < 300){
     attempts++;
@@ -2010,70 +2032,84 @@ function balanceGroups(groups, targetGap, avoidSet){
     if(maxIdx === minIdx) break;
 
     let bestSwap = null, bestGap = maxMinGap(groups);
-    let bestSwapAllowingViolation = null, bestGapAllowingViolation = maxMinGap(groups);
+    let bestSwapAllowingSoftViolation = null, bestGapAllowingSoftViolation = maxMinGap(groups);
     for(let i=0;i<groups[maxIdx].length;i++){
       for(let j=0;j<groups[minIdx].length;j++){
         const a = groups[maxIdx][i], b = groups[minIdx][j];
-        const createsViolation = avoidSet && (
-          groups[maxIdx].some((p,idx)=> idx!==i && hasRecentPair(avoidSet, b.name, p.name)) ||
-          groups[minIdx].some((p,idx)=> idx!==j && hasRecentPair(avoidSet, a.name, p.name))
-        );
         groups[maxIdx][i] = b; groups[minIdx][j] = a;
-        const gap = maxMinGap(groups);
-        if(!createsViolation && gap < bestGap){ bestGap = gap; bestSwap = {i,j}; }
-        if(gap < bestGapAllowingViolation){ bestGapAllowingViolation = gap; bestSwapAllowingViolation = {i,j}; }
+
+        const hardViolation = violatesHardPairs(groups[maxIdx], hardPairs) || violatesHardPairs(groups[minIdx], hardPairs);
+        if(!hardViolation){
+          const softViolation = avoidSet && (
+            groups[maxIdx].some((p,idx)=> idx!==i && hasRecentPair(avoidSet, b.name, p.name)) ||
+            groups[minIdx].some((p,idx)=> idx!==j && hasRecentPair(avoidSet, a.name, p.name))
+          );
+          const gap = maxMinGap(groups);
+          if(!softViolation && gap < bestGap){ bestGap = gap; bestSwap = {i,j}; }
+          if(gap < bestGapAllowingSoftViolation){ bestGapAllowingSoftViolation = gap; bestSwapAllowingSoftViolation = {i,j}; }
+        }
         groups[maxIdx][i] = a; groups[minIdx][j] = b; // 되돌리기
       }
     }
-    // 회피 조합을 안 만드는 스왑을 우선 채택하고, 그런 스왑이 전혀 없을 때만 어쩔 수 없이 차선책 사용
-    const chosen = bestSwap || bestSwapAllowingViolation;
-    if(!chosen) break; // 더 이상 개선되는 스왑 없음
+    // 절대 금지 조합은 항상 제외됨. 동반조 회피까지 지키는 스왑을 우선 채택하고, 없으면 회피만 포기.
+    const chosen = bestSwap || bestSwapAllowingSoftViolation;
+    if(!chosen) break; // 더 이상(금지 조합을 안 만들면서) 개선되는 스왑 없음
     const a = groups[maxIdx][chosen.i], b = groups[minIdx][chosen.j];
     groups[maxIdx][chosen.i] = b; groups[minIdx][chosen.j] = a;
   }
   return groups;
 }
 
-// 두 사람이 반드시 다른 조가 되도록 강제(하드 규칙). 균형이 가장 덜 깨지는 스왑을 선택합니다.
-function enforceHardSeparation(groups, name1, name2){
-  if(!name1 || !name2) return groups;
-  const gi = groups.findIndex(g => g.some(p=>p.name===name1) && g.some(p=>p.name===name2));
-  if(gi === -1) return groups; // 이미 분리되어 있음
-  const g = groups[gi];
-  const idx2 = g.findIndex(p=>p.name===name2);
-  const person2 = g[idx2];
+// 지정된 모든 절대 금지 조합이 실제로 다른 조가 되도록 강제합니다. 균형이 가장 덜 깨지는 스왑을 선택하고,
+// 다른 금지 조합을 새로 만들지 않는 스왑만 채택합니다.
+function enforceHardSeparation(groups, hardPairs){
+  if(!hardPairs || hardPairs.length === 0) return groups;
+  let attempts = 0;
+  while(attempts < hardPairs.length * 3){
+    attempts++;
+    const violatingPair = hardPairs.find(([n1,n2]) => groups.some(g => g.some(p=>p.name===n1) && g.some(p=>p.name===n2)));
+    if(!violatingPair) break; // 모두 분리됨
 
-  let bestSwap = null, bestIncrease = Infinity;
-  const beforeGap = maxMinGap(groups);
-  for(let gj=0; gj<groups.length; gj++){
-    if(gj === gi) continue;
-    for(let k=0;k<groups[gj].length;k++){
-      const candidate = groups[gj][k];
-      if(candidate.name === name1) continue;
-      groups[gi][idx2] = candidate; groups[gj][k] = person2;
-      const increase = maxMinGap(groups) - beforeGap;
-      if(increase < bestIncrease){ bestIncrease = increase; bestSwap = {gj,k}; }
-      groups[gi][idx2] = person2; groups[gj][k] = candidate; // 되돌리기
+    const [name1, name2] = violatingPair;
+    const gi = groups.findIndex(g => g.some(p=>p.name===name1) && g.some(p=>p.name===name2));
+    const g = groups[gi];
+    const idx2 = g.findIndex(p=>p.name===name2);
+    const person2 = g[idx2];
+
+    let bestSwap = null, bestIncrease = Infinity;
+    const beforeGap = maxMinGap(groups);
+    for(let gj=0; gj<groups.length; gj++){
+      if(gj === gi) continue;
+      for(let k=0;k<groups[gj].length;k++){
+        const candidate = groups[gj][k];
+        if(candidate.name === name1) continue;
+        groups[gi][idx2] = candidate; groups[gj][k] = person2;
+        const stillOk = !violatesHardPairs(groups[gi], hardPairs) && !violatesHardPairs(groups[gj], hardPairs);
+        if(stillOk){
+          const increase = maxMinGap(groups) - beforeGap;
+          if(increase < bestIncrease){ bestIncrease = increase; bestSwap = {gj,k}; }
+        }
+        groups[gi][idx2] = person2; groups[gj][k] = candidate; // 되돌리기
+      }
     }
-  }
-  if(bestSwap){
-    const candidate = groups[bestSwap.gj][bestSwap.k];
-    groups[gi][idx2] = candidate;
-    groups[bestSwap.gj][bestSwap.k] = person2;
+    if(bestSwap){
+      const candidate = groups[bestSwap.gj][bestSwap.k];
+      groups[gi][idx2] = candidate;
+      groups[bestSwap.gj][bestSwap.k] = person2;
+    } else {
+      break; // 해결할 스왑을 못 찾음 (인원이 너무 적은 극단적 경우)
+    }
   }
   return groups;
 }
 
 // 핸디캡 균형은 최대한 지키면서(목표 격차 미만 유지), 피하고 싶은 조합(최근 동반조 + 지정 조합)은
 // 가능한 만큼만 다른 조로 교체(스왑)해서 피합니다. 하드 분리 조합(hardPair)은 절대 재결합하지 않습니다.
-function avoidPairs(groups, avoidSet, hardPair){
+function avoidPairs(groups, avoidSet, hardPairs){
   if(!avoidSet || avoidSet.size === 0) return groups;
 
   function createsHardViolation(g){
-    if(!hardPair) return false;
-    const hasA = g.some(p=>p.name===hardPair[0]);
-    const hasB = g.some(p=>p.name===hardPair[1]);
-    return hasA && hasB;
+    return violatesHardPairs(g, hardPairs);
   }
   function findViolations(){
     const violations = [];
@@ -2168,8 +2204,9 @@ async function autoGroup(){
     }
 
     // 지정 조합 회피 규칙 반영
-    const hardName1 = resolveParticipantName('버디무니');
-    const hardName2 = resolveParticipantName('밀리언송');
+    const hardPairsResolved = (forbiddenPairs || [])
+      .map(([n1,n2]) => [resolveParticipantName(n1) || n1, resolveParticipantName(n2) || n2])
+      .filter(([n1,n2]) => today.some(p=>p.name===n1) && today.some(p=>p.name===n2));
     const softCenter = resolveParticipantName('칼이씀아');
     const softOthers = ['밀리언송','강씨씨','채린공주','짱아샷','엔젤로사'].map(resolveParticipantName).filter(Boolean);
     const avoidSet = new Set(recentPairs);
@@ -2182,25 +2219,10 @@ async function autoGroup(){
     const TARGET_GAP = 0.5;
     const sizes = computeGroupSizes(today.length, groupSize);
     let groups = zigzagAssign(today, sizes);
-    groups = avoidPairs(groups, avoidSet, (hardName1 && hardName2) ? [hardName1, hardName2] : null); // ① 회피를 먼저 최대한 시도
-    groups = balanceGroups(groups, TARGET_GAP, avoidSet); // ② 방금 회피한 결과는 최대한 지키면서 균형을 0.5 미만으로 조정
-    if(hardName1 && hardName2){
-      groups = enforceHardSeparation(groups, hardName1, hardName2); // ③ 절대 규칙은 마지막에 강제
-      // 검증: 그래도 같은 조라면(극단적 예외 상황) 무조건 분리되도록 단순 강제 스왑
-      const stillTogether = groups.some(g => g.some(p=>p.name===hardName1) && g.some(p=>p.name===hardName2));
-      if(stillTogether){
-        const gi = groups.findIndex(g => g.some(p=>p.name===hardName1) && g.some(p=>p.name===hardName2));
-        const idx2 = groups[gi].findIndex(p=>p.name===hardName2);
-        for(let gj=0; gj<groups.length; gj++){
-          if(gj===gi || groups[gj].length===0) continue;
-          const tmp = groups[gi][idx2];
-          groups[gi][idx2] = groups[gj][0];
-          groups[gj][0] = tmp;
-          break;
-        }
-      }
-    }
-    groups = balanceGroups(groups, TARGET_GAP, avoidSet); // ④ 하드 분리로 흔들렸을 균형을 한 번 더 조정
+    groups = avoidPairs(groups, avoidSet, hardPairsResolved); // ① 회피를 먼저 최대한 시도 (금지 조합은 새로 안 만듦)
+    groups = balanceGroups(groups, TARGET_GAP, avoidSet, hardPairsResolved); // ② 회피 결과는 최대한 지키면서 균형을 0.5 미만으로 조정
+    groups = enforceHardSeparation(groups, hardPairsResolved); // ③ 절대 규칙은 마지막에 강제
+    groups = balanceGroups(groups, TARGET_GAP, avoidSet, hardPairsResolved); // ④ 하드 분리로 흔들렸을 균형을 한 번 더 조정(금지 조합은 계속 존중)
     currentGroups = groups;
 
     // Firestore는 배열 안에 배열을 직접 저장할 수 없어(중첩 배열 미지원),
@@ -2211,20 +2233,23 @@ async function autoGroup(){
     const finalGap = maxMinGap(currentGroups).toFixed(1);
     let statusMsg = `${sizes.length}개 조로 편성 완료! (조별 평균 핸디캡 격차 ${finalGap})`;
 
-    // 진단 정보: 혹시 이름이 안 찾아지거나 여전히 문제가 있으면 눈에 보이게 경고
+    // 진단 정보: 혹시 설정한 금지 조합이 참가자 명단에 없거나, 여전히 문제가 있으면 눈에 보이게 경고
     const warnings = [];
-    if(!hardName1) warnings.push('"버디무니"를 오늘 참가자에서 찾지 못했습니다(아이디/이름 확인 필요)');
-    if(!hardName2) warnings.push('"밀리언송"을 오늘 참가자에서 찾지 못했습니다(아이디/이름 확인 필요)');
-    if(hardName1 && hardName2){
-      const stillTogetherFinal = currentGroups.some(g => g.some(p=>p.name===hardName1) && g.some(p=>p.name===hardName2));
-      if(stillTogetherFinal) warnings.push('버디무니·밀리언송 분리에 실패했습니다(인원이 너무 적을 수 있음)');
+    if((forbiddenPairs||[]).length > hardPairsResolved.length){
+      warnings.push('금지 조합 중 일부가 오늘 참가자 명단에 없어 적용되지 않았습니다.');
+    }
+    const stillTogetherFinal = hardPairsResolved.filter(([n1,n2]) =>
+      currentGroups.some(g => g.some(p=>p.name===n1) && g.some(p=>p.name===n2))
+    );
+    if(stillTogetherFinal.length > 0){
+      warnings.push(`${stillTogetherFinal.map(([n1,n2])=>`${displayLabel(n1)}↔${displayLabel(n2)}`).join(', ')} 분리에 실패했습니다(인원이 너무 적을 수 있음).`);
     }
     if(recentPairs.size === 0) warnings.push('직전 대회 조편성 기록을 찾지 못했습니다(첫 대회이거나 이전 기록 형식 문제)');
 
     if(warnings.length > 0){
       setMsg(statusMsg + ' ⚠️ ' + warnings.join(' / '), true);
     } else {
-      setMsg(statusMsg + ` (회피 대상 조합 ${avoidSet.size}개 확인, 최근 동반조·지정 조합 회피 적용됨)`, false);
+      setMsg(statusMsg + ` (금지 조합 ${hardPairsResolved.length}개 · 회피 대상 조합 ${avoidSet.size}개 반영됨)`, false);
     }
   } catch(err){
     console.error(err);
@@ -2232,6 +2257,53 @@ async function autoGroup(){
   } finally {
     if(btn){ btn.disabled = false; btn.textContent = '🔀 조편성 시작'; btn.classList.remove('opacity-60'); }
   }
+}
+
+function renderForbiddenPairsUI(){
+  const selA = document.getElementById('forbiddenSelectA');
+  const selB = document.getElementById('forbiddenSelectB');
+  const list = document.getElementById('forbiddenPairsList');
+  if(!selA || !selB || !list) return;
+
+  const sorted = [...today].sort((a,b)=> a.name.localeCompare(b.name, 'ko'));
+  const options = sorted.map(p=>`<option value="${escapeHtml(p.name)}">${escapeHtml(p.id||p.name)}</option>`).join('');
+  selA.innerHTML = options;
+  selB.innerHTML = options;
+
+  if(forbiddenPairs.length === 0){
+    list.innerHTML = '<p class="text-gray-400 text-center py-2 text-sm">등록된 금지 조합이 없습니다.</p>';
+  } else {
+    list.innerHTML = forbiddenPairs.map((pair, i)=>{
+      const label1 = displayLabel(pair[0]);
+      const label2 = displayLabel(pair[1]);
+      return `
+      <div class="flex justify-between items-center bg-red-50 border-2 border-red-200 rounded-lg px-3 py-2">
+        <span class="text-base font-bold">${escapeHtml(label1)} ↔ ${escapeHtml(label2)}</span>
+        <button onclick="removeForbiddenPair(${i})" class="text-red-600 font-bold text-sm bg-red-100 px-2 py-1 rounded-lg">삭제</button>
+      </div>`;
+    }).join('');
+  }
+}
+
+function addForbiddenPair(){
+  if(checkLocked()) return;
+  const selA = document.getElementById('forbiddenSelectA');
+  const selB = document.getElementById('forbiddenSelectB');
+  const a = selA.value, b = selB.value;
+  if(!a || !b){ alert('두 분을 모두 선택해 주세요.'); return; }
+  if(a === b){ alert('서로 다른 두 명을 선택해 주세요.'); return; }
+  const exists = forbiddenPairs.some(pair => (pair[0]===a && pair[1]===b) || (pair[0]===b && pair[1]===a));
+  if(exists){ alert('이미 등록된 조합입니다.'); return; }
+  forbiddenPairs.push([a, b]);
+  pushState({ forbiddenPairs });
+  renderForbiddenPairsUI();
+}
+
+function removeForbiddenPair(i){
+  if(checkLocked()) return;
+  forbiddenPairs.splice(i, 1);
+  pushState({ forbiddenPairs });
+  renderForbiddenPairsUI();
 }
 
 function renderGroups(){
