@@ -3063,7 +3063,7 @@ async function handleScorecardUpload(input) {
   }
 }
 
-// 3. 구글 Gemini API 전송 (내 키에서 사용 가능한 모델 자동 검색 후 호출)
+// 3. 구글 Gemini API 전송 (최신 Gemini 3.x Flash 자동 연결)
 async function requestGeminiVision(base64Data, mimeType, prompt) {
   let activeKey = localStorage.getItem("GEMINI_API_KEY");
   if (!activeKey) {
@@ -3076,30 +3076,6 @@ async function requestGeminiVision(base64Data, mimeType, prompt) {
     }
   }
 
-  // 1) 내 API 키에서 사용 가능한 모델 목록을 먼저 자동 조회
-  let selectedModel = "gemini-2.0-flash";
-  try {
-    const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${activeKey}`);
-    if (listRes.ok) {
-      const listData = await listRes.json();
-      const models = listData.models || [];
-      
-      const available = models.filter(m => 
-        m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent")
-      );
-      
-      const flashModel = available.find(m => m.name.includes("flash"));
-      if (flashModel) {
-        selectedModel = flashModel.name.replace(/^models\//, "");
-      } else if (available.length > 0) {
-        selectedModel = available[0].name.replace(/^models\//, "");
-      }
-    }
-  } catch (e) {
-    console.warn("모델 목록 자동 조회 건너뜀:", e);
-  }
-
-  // 2) 찾아낸 모델로 사진 분석 요청
   const payload = {
     contents: [{
       parts: [
@@ -3112,27 +3088,44 @@ async function requestGeminiVision(base64Data, mimeType, prompt) {
     }
   };
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${activeKey}`;
-  
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { 
-      "Content-Type": "application/json",
-      "x-goog-api-key": activeKey 
-    },
-    body: JSON.stringify(payload)
-  });
+  // 최신 모델 순차 시도 (404 방지)
+  const candidateModels = [
+    "gemini-3.8-flash",
+    "gemini-3.5-flash",
+    "gemini-3.1-flash-lite"
+  ];
 
-  if (!response.ok) {
-    const errorBody = await response.text();
-    console.error("Gemini API Error Detail:", errorBody);
-    localStorage.removeItem("GEMINI_API_KEY");
-    throw new Error(`API 오류 (${response.status}): ${errorBody.slice(0, 100)}`);
+  let lastStatus = 0;
+  let lastErrorText = "";
+
+  for (const model of candidateModels) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${activeKey}`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "x-goog-api-key": activeKey 
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.candidates[0].content.parts[0].text;
+      }
+
+      lastStatus = response.status;
+      lastErrorText = await response.text();
+    } catch (e) {
+      console.warn(`모델 ${model} 시도 중 오류:`, e);
+    }
   }
 
-  const data = await response.json();
-  return data.candidates[0].content.parts[0].text;
+  localStorage.removeItem("GEMINI_API_KEY");
+  throw new Error(`API 오류 (${lastStatus}): 모델 연결을 확인하지 못했습니다.`);
 }
+
 
 function resizeAndConvertToBase64(file) {
   return new Promise((resolve, reject) => {
