@@ -3356,7 +3356,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
 <script>
 (function() {
   window.addEventListener('DOMContentLoaded', () => {
-    // 1-1. 참가자 등록 텍스트창 찾아서 위에 핸디캡 버튼 달기
+    // 1-1. 참가자 등록 텍스트창 위에 핸디 버튼 달기
     const participantTextarea = document.querySelector('textarea');
     if (participantTextarea) {
       const hBox = document.createElement('div');
@@ -3378,7 +3378,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
       participantTextarea.parentNode.insertBefore(hBox, participantTextarea);
     }
 
-    // 1-2. 스코어보드 텍스트창 찾아서 위에 스코어 버튼 달기
+    // 1-2. 스코어보드 텍스트창 위에 스코어 버튼 달기
     const textareas = document.querySelectorAll('textarea');
     if (textareas.length >= 2) {
       const scoreTextarea = textareas[1];
@@ -3467,7 +3467,7 @@ async function handleScorecardUpload(input) {
   }
 }
 
-// 4. 구글 Gemini API 전송 (신형 AQ. 키 및 AIza 키 완벽 지원)
+// 4. 구글 Gemini API 전송 (404 방지 및 최신 모델 자동 시도)
 async function requestGeminiVision(base64Data, mimeType, prompt) {
   let activeKey = localStorage.getItem("GEMINI_API_KEY");
   if (!activeKey) {
@@ -3480,28 +3480,53 @@ async function requestGeminiVision(base64Data, mimeType, prompt) {
     }
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${activeKey}`;
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { 
-      "Content-Type": "application/json",
-      "x-goog-api-key": activeKey
-    },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mimeType, data: base64Data } }] }],
-      generationConfig: { response_mime_type: "application/json" }
-    })
-  });
+  const payload = {
+    contents: [{
+      parts: [
+        { text: prompt },
+        { inline_data: { mime_type: mimeType, data: base64Data } }
+      ]
+    }],
+    generationConfig: {
+      response_mime_type: "application/json"
+    }
+  };
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Gemini API Error Detail:", errorText);
-    localStorage.removeItem("GEMINI_API_KEY");
-    throw new Error(`API 인증 실패 (${response.status}). 키를 다시 확인해주세요.`);
+  // 최신 모델 순서대로 자동 시도 (404 Not Found 방지)
+  const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+  let lastError = null;
+
+  for (const model of models) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${activeKey}`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": activeKey
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.candidates[0].content.parts[0].text;
+      }
+
+      // 404면 다음 버전 모델로 시도
+      if (response.status === 404) {
+        continue;
+      }
+
+      const errText = await response.text();
+      throw new Error(`API 오류 (${response.status}): ${errText}`);
+    } catch (e) {
+      lastError = e;
+      if (!e.message.includes("404")) throw e;
+    }
   }
 
-  const data = await response.json();
-  return data.candidates[0].content.parts[0].text;
+  throw lastError || new Error("사용 가능한 Gemini 모델을 찾을 수 없습니다.");
 }
 
 function resizeAndConvertToBase64(file) {
