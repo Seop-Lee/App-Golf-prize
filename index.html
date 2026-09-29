@@ -3467,7 +3467,7 @@ async function handleScorecardUpload(input) {
   }
 }
 
-// 4. 구글 Gemini API 전송 (404 방지 및 최신 모델 자동 시도)
+// 4. 구글 Gemini API 전송 (AQ. 최신 키 호환 표준 규격)
 async function requestGeminiVision(base64Data, mimeType, prompt) {
   let activeKey = localStorage.getItem("GEMINI_API_KEY");
   if (!activeKey) {
@@ -3492,41 +3492,27 @@ async function requestGeminiVision(base64Data, mimeType, prompt) {
     }
   };
 
-  // 최신 모델 순서대로 자동 시도 (404 Not Found 방지)
-  const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
-  let lastError = null;
+  // 구글 최신 표준 모델 엔드포인트
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
+  
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": activeKey
+    },
+    body: JSON.stringify(payload)
+  });
 
-  for (const model of models) {
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${activeKey}`;
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": activeKey
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        return data.candidates[0].content.parts[0].text;
-      }
-
-      // 404면 다음 버전 모델로 시도
-      if (response.status === 404) {
-        continue;
-      }
-
-      const errText = await response.text();
-      throw new Error(`API 오류 (${response.status}): ${errText}`);
-    } catch (e) {
-      lastError = e;
-      if (!e.message.includes("404")) throw e;
-    }
+  if (!response.ok) {
+    const errorBody = await response.text();
+    console.error("Gemini API Error:", errorBody);
+    localStorage.removeItem("GEMINI_API_KEY");
+    throw new Error(`API 오류 (${response.status}): 다시 시도해주세요.`);
   }
 
-  throw lastError || new Error("사용 가능한 Gemini 모델을 찾을 수 없습니다.");
+  const data = await response.json();
+  return data.candidates[0].content.parts[0].text;
 }
 
 function resizeAndConvertToBase64(file) {
