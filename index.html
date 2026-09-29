@@ -74,7 +74,7 @@
       <h1 class="text-2xl font-extrabold">📊 기간별 집계</h1>
       <button onclick="closeStatsPanel()" class="text-sm bg-gray-100 text-gray-700 px-2 py-1 rounded-lg font-bold">닫기</button>
     </div>
-    <p class="text-sm text-gray-500 mb-3">기간 안의 모든 대회를 합산해 상금왕(총 상금)과 향상왕(핸디캡이 가장 많이 낮아진 회원)을 계산합니다.</p>
+    <p class="text-sm text-gray-500 mb-3">기간 안의 모든 대회를 합산해 상금왕과 향상왕을 계산합니다.</p>
 
     <div class="grid grid-cols-2 gap-2 mb-2">
       <div>
@@ -166,7 +166,7 @@
     <section id="tab-members" class="space-y-4">
       <div class="bg-white rounded-2xl p-4 shadow border-2 border-gray-200">
         <h2 class="text-xl font-extrabold mb-1">👤 회원 등록</h2>
-        <p class="text-sm text-gray-500 mb-3">아이디는 조편성·스코어·정산 등 화면 곳곳에서 이름 대신 표시됩니다. 알아보기 쉬운 별명으로 입력해 주세요.</p>
+        <p class="text-sm text-gray-500 mb-3">아이디는 조편성·스코어·정산 등 화면 곳곳에서 이름 대신 표시됩니다.</p>
         <input id="newMemberId" type="text" placeholder="아이디 (별명)"
           class="w-full border-2 border-gray-300 rounded-xl px-3 py-4 text-lg mb-2 focus:border-green-600 outline-none">
         <input id="newMemberName" type="text" placeholder="이름 (실명)"
@@ -209,9 +209,9 @@
         <div id="todayList" class="space-y-3"></div>
       </div>
 
-      <!-- AI 카메라 직전 핸디캡 등록 버튼 직접 배치 -->
+      <!-- AI 카메라 버튼 -->
       <div class="bg-blue-50 border-2 border-blue-300 rounded-2xl p-4 shadow">
-        <p class="text-base font-extrabold text-blue-900 mb-2">📷 [경기 직전] 스크린 대기화면 핸디 자동 인식</p>
+        <p class="text-base font-extrabold text-blue-900 mb-2">📷 [경기 직전] 스크린 대기화면 핸디 자동 등록</p>
         <div class="flex gap-2">
           <label class="flex-1 text-center py-3 bg-blue-600 text-white rounded-xl font-bold cursor-pointer active:bg-blue-800 text-base">
             📸 촬영
@@ -230,7 +230,7 @@
           📋 핸디캡 일괄 붙여넣기
         </button>
         <div id="handicapPasteBox" class="hidden mt-3">
-          <p class="text-sm text-gray-500 mb-2">스크린골프 앱 화면 등에서 "아이디  +3.9" 형태로 한 줄씩 복사한 텍스트를 그대로 붙여넣으세요.</p>
+          <p class="text-sm text-gray-500 mb-2">스크린골프 앱 화면 등에서 "아이디  +3.9" 형태로 복사한 텍스트를 붙여넣으세요.</p>
           <textarea id="handicapPasteInput" rows="6" placeholder="예:&#10;QPD +3.9&#10;수지도 +6.9&#10;태리매비 -1.0"
             class="w-full border-2 border-gray-300 rounded-xl px-3 py-3 text-base outline-none focus:border-yellow-500"></textarea>
           <button onclick="applyHandicapPaste()" class="btn-primary w-full bg-yellow-600 text-white py-3 rounded-xl active:bg-yellow-700 mt-2">
@@ -249,7 +249,7 @@
     <!-- ================= 탭3: 조편성 ================= -->
     <section id="tab-groups" class="space-y-4 hidden">
       <div id="groupEditControls" class="bg-white rounded-2xl p-4 shadow border-2 border-gray-200 text-center">
-        <p class="text-base text-gray-600 mb-3">한 조당 최대 인원수를 선택하세요.<br>핸디캡을 고려해 자동으로 균등 배정하고, 최근 1~2개 대회에서 같은 조였던 분들은 균형이 크게 깨지지 않는 선에서 가능한 만큼 다른 조로 배치합니다.</p>
+        <p class="text-base text-gray-600 mb-3">한 조당 최대 인원수를 선택하세요.<br>핸디캡을 고려해 자동으로 균등 배정합니다.</p>
         <div class="grid grid-cols-3 gap-2 mb-3">
           <button id="gs-3" onclick="setGroupSize(3)" class="group-size-btn py-3 rounded-xl text-lg font-bold border-2">3명</button>
           <button id="gs-4" onclick="setGroupSize(4)" class="group-size-btn py-3 rounded-xl text-lg font-bold border-2">4명</button>
@@ -280,14 +280,12 @@
     <section id="tab-score" class="space-y-4 hidden">
       <div class="bg-white rounded-2xl p-4 shadow border-2 border-gray-200">
         <h2 class="text-xl font-extrabold mb-3">🏌️ 핸디반영 최종스코어 입력</h2>
-        <p class="text-sm text-gray-500 mb-3">각 조에서 찍어온 스코어카드 사진을 보고, 아래에 직접 숫자를 입력해 주세요.<br>
-        <b>타수를 그대로</b> 입력해도 되고(예: 82), <b>파72 기준 과부족</b>으로 입력해도 됩니다(예: +10, -2).</p>
         <div id="scoreList" class="space-y-3"></div>
       </div>
 
-      <!-- AI 카메라 최종 스코어보드 인식 버튼 직접 배치 -->
+      <!-- AI 카메라 최종 스코어보드 버튼 -->
       <div class="bg-emerald-50 border-2 border-emerald-300 rounded-2xl p-4 shadow">
-        <p class="text-base font-extrabold text-emerald-900 mb-2">🏆 [종료 후] 스코어카드 사진 자동 인식 (중복 제거)</p>
+        <p class="text-base font-extrabold text-emerald-900 mb-2">🏆 [경기 직후] 스코어카드 사진 자동 등록 (중복 제거)</p>
         <div class="flex gap-2">
           <label class="flex-1 text-center py-3 bg-emerald-600 text-white rounded-xl font-bold cursor-pointer active:bg-emerald-800 text-base">
             📸 촬영
@@ -306,21 +304,8 @@
           📋 스코어 일괄 붙여넣기
         </button>
         <div id="scorePasteBox" class="hidden mt-3">
-          <p class="text-sm text-gray-500 mb-2">"아이디  점수" 형태로 한 줄씩 붙여넣으세요. 점수는 타수(예: 82) 또는 파72 기준 과부족(예: +10, -2) 모두 가능합니다.</p>
           <textarea id="scorePasteInput" rows="6" placeholder="예:&#10;QPD 82&#10;수지도 +6&#10;태리매비 79"
             class="w-full border-2 border-gray-300 rounded-xl px-3 py-3 text-base outline-none focus:border-yellow-500"></textarea>
-
-          <p class="text-sm font-bold text-gray-600 mt-3 mb-1">붙여넣는 점수는 어떤 값인가요?</p>
-          <div class="flex gap-2 mb-2">
-            <label class="flex-1 flex items-center justify-center gap-1 border-2 border-gray-300 rounded-lg py-2 text-sm">
-              <input type="radio" name="scorePasteType" value="applied" checked class="accent-yellow-600"> 핸디캡 반영된 점수
-            </label>
-            <label class="flex-1 flex items-center justify-center gap-1 border-2 border-gray-300 rounded-lg py-2 text-sm">
-              <input type="radio" name="scorePasteType" value="raw" class="accent-yellow-600"> 핸디캡 반영 안 된 총타수
-            </label>
-          </div>
-          <p class="text-xs text-gray-400 mb-2">※ "핸디캡 반영 안 된 총타수"를 선택하면, 저장할 때 <b>등록된 양수 핸디캡만 그 자리에서 차감</b>합니다 (음수 핸디캡은 최저 0이라 더 뺄 것이 없어 그대로 저장). "핸디캡 반영된 점수"는 입력한 숫자를 그대로 저장합니다.</p>
-
           <button onclick="applyScorePaste()" class="btn-primary w-full bg-yellow-600 text-white py-3 rounded-xl active:bg-yellow-700 mt-2">
             적용하기
           </button>
@@ -342,7 +327,6 @@
 
       <div class="bg-white rounded-2xl p-4 shadow border-2 border-yellow-400">
         <h2 class="text-xl font-extrabold mb-1">🕳️ 홀인원</h2>
-        <p class="text-sm text-gray-500 mb-3">홀인원을 한 회원과 상금을 입력하세요. 여러 명도 가능합니다.</p>
         <div id="holeInOneList" class="space-y-2 mb-3"></div>
         <button onclick="addHoleInOne()" class="btn-secondary w-full bg-yellow-500 text-white py-3 rounded-xl active:bg-yellow-600">+ 홀인원 추가</button>
       </div>
@@ -364,67 +348,42 @@
       <div id="moneyResult" class="space-y-4"></div>
     </section>
 
-    <!-- ================= 탭6: 내 스코어 입력 (선수 모드 전용) ================= -->
+    <!-- ================= 탭6: 내 스코어 입력 ================= -->
     <section id="tab-myscore" class="space-y-4 hidden">
       <div id="myEditLockedCard" class="bg-white rounded-2xl p-4 shadow border-2 border-orange-300 text-center">
-        <p class="text-base text-gray-600 mb-3">내 이름/아이디 수정, 핸디캡·스코어 입력은 비밀번호를 입력해야 가능합니다.</p>
+        <p class="text-base text-gray-600 mb-3">비밀번호를 입력해야 내 정보 수정이 가능합니다.</p>
         <button onclick="unlockMemberEdit()" class="btn-primary w-full bg-orange-600 text-white py-4 rounded-xl active:bg-orange-800">
-          🔓 비밀번호 입력해서 내 정보 수정하기
+          🔓 비밀번호 입력해서 수정하기
         </button>
       </div>
 
       <div id="myEditUnlockedCard" class="hidden space-y-4">
         <div class="bg-white rounded-2xl p-4 shadow border-2 border-orange-300">
           <h2 class="text-xl font-extrabold mb-3">📝 내 정보 / 최종스코어</h2>
-          <label class="text-base text-gray-600 block mb-1">본인 이름</label>
           <select id="myPlayerSelect" onchange="chooseMyPlayer(this.value)"
             class="w-full border-2 border-gray-300 rounded-xl px-3 py-4 text-lg mb-4 outline-none">
             <option value="">-- 이름 선택 --</option>
           </select>
-
           <div id="myScoreBox" class="hidden">
             <p id="myGroupInfo" class="text-base text-gray-600 mb-3"></p>
-
-            <label class="text-base text-gray-600 block mb-1">이름/아이디 수정</label>
-            <div class="flex gap-2 mb-4">
-              <input id="myIdInput" type="text" placeholder="아이디"
-                onchange="updateMyIdName()"
-                class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-3 py-2 text-lg outline-none">
-              <input id="myNameInput" type="text" placeholder="이름"
-                onchange="updateMyIdName()"
-                class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-3 py-2 text-lg outline-none">
-            </div>
-
-            <label class="text-base text-gray-600 block mb-1">이번 대회 내 핸디캡</label>
-            <div class="flex items-center gap-2 mb-4">
-              <button type="button" onclick="toggleMyHandicapSign()"
-                id="myHandicapSignBtn" class="w-11 h-11 flex-shrink-0 border-2 border-gray-300 rounded-lg text-xl font-bold text-gray-700">−</button>
-              <input id="myHandicapInput" type="text" inputmode="decimal" placeholder="0.0"
-                oninput="updateMyHandicap(this.value)" onfocus="this.select()"
-                class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-3 py-2 text-lg text-right outline-none">
-            </div>
-
-            <label class="text-base text-gray-600 block mb-1">핸디반영 최종스코어 <span class="text-xs text-gray-400 font-normal">(타수 그대로 또는 파72 기준 과부족, 예: +10)</span></label>
-            <input id="myScoreInput" type="text" inputmode="text" placeholder="예: 82 또는 +10"
-              oninput="updateMyScore(this.value)" onfocus="this.select()"
-              class="w-full border-2 border-gray-300 rounded-xl px-3 py-4 text-2xl text-center outline-none focus:border-orange-500">
+            <input id="myScoreInput" type="text" placeholder="예: 82 또는 +10"
+              oninput="updateMyScore(this.value)"
+              class="w-full border-2 border-gray-300 rounded-xl px-3 py-4 text-2xl text-center outline-none">
             <p id="myScoreSavedMsg" class="text-sm text-green-600 text-center mt-2"></p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- ================= 탭7: 우리 조 스코어 입력 (방장 모드 전용) ================= -->
+    <!-- ================= 탭7: 조 스코어 입력 ================= -->
     <section id="tab-groupscore" class="space-y-4 hidden">
       <div class="bg-white rounded-2xl p-4 shadow border-2 border-teal-300">
         <h2 class="text-xl font-extrabold mb-3">👨‍👩‍👧‍👦 우리 조 스코어 입력</h2>
-        <label class="text-base text-gray-600 block mb-1">우리 조를 선택하세요</label>
         <select id="myGroupSelect" onchange="chooseMyGroup(this.value)"
           class="w-full border-2 border-gray-300 rounded-xl px-3 py-4 text-lg outline-none">
           <option value="">-- 조 선택 --</option>
         </select>
       </div>
-
       <div id="groupScoreList" class="space-y-3"></div>
     </section>
 
@@ -432,7 +391,7 @@
 </div>
 
 <script>
-/* ===================== Firebase 설정 ===================== */
+/* ===================== Firebase 설정 및 기본 로직 ===================== */
 const firebaseConfig = {
   apiKey: "AIzaSyDuNqWcWvSY330C2qgq6eZJ4QLgcjXsaRo",
   authDomain: "golfclubprize.firebaseapp.com",
@@ -443,50 +402,25 @@ const firebaseConfig = {
 };
 
 let feePerPerson = 5000;
-
 function defaultPrizeRules(){
-  return {
-    overallPct: 50,
-    groupPct: 30,
-    eventPct: 20,
-    overallPlaces: 3,
-    overallSplit: [50,30,20],
-    groupPlaces: 2,
-    groupSplit: [60,40],
-    eventSplit: { nearPin: 50, lucky: 50 }
-  };
+  return { overallPct: 50, groupPct: 30, eventPct: 20, overallPlaces: 3, overallSplit: [50,30,20], groupPlaces: 2, groupSplit: [60,40], eventSplit: { nearPin: 50, lucky: 50 } };
 }
 let prizeRules = defaultPrizeRules();
 
-let members = [];
-let today = [];
-let currentGroups = null;
-let luckyExcluded = [];
-let luckyWinners = null;
-let scores = {};
-let scoreIsRaw = {};
-let par3Count = 4;
-let nearPins = [];
-let holeInOnes = [];
-let locked = false;
-let luckyCount = 2;
-let groupPrizeOverride = {};
-let groupPrizeEditMode = false;
-let shareOptions = { nearPin: true, lucky: true, money: true };
-let forbiddenPairs = [];
-let lockPin = '';
-let memberEditUnlocked = false;
+let members = [], today = [], currentGroups = null, luckyExcluded = [], luckyWinners = null;
+let scores = {}, scoreIsRaw = {}, par3Count = 4, nearPins = [], holeInOnes = [];
+let locked = false, luckyCount = 2, groupPrizeOverride = {}, groupPrizeEditMode = false;
+let shareOptions = { nearPin: true, lucky: true, money: true }, forbiddenPairs = [], lockPin = '', memberEditUnlocked = false;
 
 function roundTo1000(x){ return Math.round(x/1000)*1000; }
 const PAR = 72;
 
 function parseScoreInput(str){
   const s = String(str).trim();
-  if(s === '') return null;
+  if(!s) return null;
   if(s[0] === '+' || s[0] === '-'){
     const v = parseInt(s, 10);
-    if(isNaN(v)) return null;
-    return PAR + v;
+    return isNaN(v) ? null : PAR + v;
   }
   const v = parseInt(s, 10);
   return isNaN(v) ? null : v;
@@ -495,38 +429,15 @@ function parseScoreInput(str){
 function formatScore(strokes){
   if(strokes == null || isNaN(strokes)) return '-';
   const rounded = Math.round(strokes*10)/10;
-  const diffRounded = Math.round((rounded - PAR)*10)/10;
-  const strokesStr = Number.isInteger(rounded) ? `${rounded}` : rounded.toFixed(1);
-  const diffStr = Number.isInteger(diffRounded)
-    ? (diffRounded>0 ? `+${diffRounded}` : `${diffRounded}`)
-    : (diffRounded>0 ? `+${diffRounded.toFixed(1)}` : diffRounded.toFixed(1));
-  return `${strokesStr}타 (${diffStr})`;
+  const diff = Math.round((rounded - PAR)*10)/10;
+  return `${rounded}타 (${diff>0?'+':''}${diff})`;
 }
 
-function formatScoreAvg(strokes){
-  if(strokes == null || isNaN(strokes)) return '-';
-  const diff = strokes - PAR;
-  const diffStr = diff > 0 ? `+${diff.toFixed(1)}` : diff.toFixed(1);
-  return `${strokes.toFixed(1)}타 (${diffStr})`;
-}
-
-let db = null;
-let clubRef = null;
-let clubCode = null;
-let eventRef = null;
-let eventId = null;
-let clubUnsub = null;
-let eventUnsub = null;
-let eventsListUnsub = null;
-let applyingRemote = false;
+let db = null, clubRef = null, clubCode = null, eventRef = null, eventId = null;
+let clubUnsub = null, eventUnsub = null, eventsListUnsub = null;
 
 function initFirebase(){
   if(db) return true;
-  if(firebaseConfig.apiKey.includes('여기에')){
-    document.getElementById('roomGateMsg').textContent =
-      'firebaseConfig가 아직 설정되지 않았습니다.';
-    return false;
-  }
   firebase.initializeApp(firebaseConfig);
   db = firebase.firestore();
   return true;
@@ -551,7 +462,7 @@ function joinRoom(){
   const lastEvent = localStorage.getItem('golf_last_event_' + code);
   if(lastEvent){
     clubRef.collection('events').doc(lastEvent).get().then(doc=>{
-      if(doc.exists) openEvent(lastEvent, doc.data().title || '이름없는 대회');
+      if(doc.exists) openEvent(lastEvent, doc.data().title || '모임');
       else document.getElementById('eventGate').classList.remove('hidden');
     }).catch(()=> document.getElementById('eventGate').classList.remove('hidden'));
   } else {
@@ -560,412 +471,48 @@ function joinRoom(){
 }
 
 function leaveRoom(){
-  if(!confirm('클럽에서 나가시겠습니까? (회원·대회 데이터는 그대로 보관됩니다)')) return;
+  if(!confirm('클럽에서 나가시겠습니까?')) return;
   if(clubUnsub) clubUnsub();
   if(eventUnsub) eventUnsub();
   if(eventsListUnsub) eventsListUnsub();
   localStorage.removeItem('golf_club_code');
-  if(clubCode) localStorage.removeItem('golf_last_event_' + clubCode);
-  clubRef = null; clubCode = null; eventRef = null; eventId = null;
-  members = []; today = []; currentGroups = null; luckyExcluded = []; luckyWinners = null;
-  scores = {}; par3Count = 4; nearPins = [];
-  document.getElementById('appRoot').classList.add('hidden');
-  document.getElementById('eventGate').classList.add('hidden');
-  document.getElementById('roomGate').classList.remove('hidden');
-  document.getElementById('roomCodeInput').value = '';
+  location.reload();
 }
 
 function attachClubListener(){
   clubUnsub = clubRef.onSnapshot(doc=>{
-    if(!doc.exists){
-      clubRef.set({ members: [] });
-      return;
-    }
+    if(!doc.exists){ clubRef.set({ members: [] }); return; }
     members = doc.data().members || [];
     renderMembers();
-  }, err=>{
-    console.error(err);
-    alert('클럽 정보를 불러오는 중 오류: ' + err.message);
   });
 }
 
 function pushClubState(partial){
-  if(!clubRef) return;
-  clubRef.set(partial, { merge: true }).catch(err=>{
-    console.error(err);
-    alert('저장 중 오류: ' + err.message);
-  });
+  if(clubRef) clubRef.set(partial, { merge: true });
 }
 
 function loadEventsList(){
-  if(eventsListUnsub) eventsListUnsub();
   eventsListUnsub = clubRef.collection('events').orderBy('createdAt', 'desc').onSnapshot(snap=>{
     const box = document.getElementById('eventList');
-    if(snap.empty){
-      box.innerHTML = '<p class="text-gray-400 text-center py-3">등록된 대회가 없습니다.</p>';
-      return;
-    }
-    box.innerHTML = snap.docs.map(d=>{
-      const data = d.data();
-      const dateStr = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate().toLocaleDateString('ko-KR') : '';
-      const title = data.title || '이름없는 대회';
-      return `
-      <div class="flex gap-2">
-        <button onclick="openEvent('${d.id}', '${escapeAttr(title)}')"
-          class="flex-1 min-w-0 text-left bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 active:bg-gray-100">
-          <div class="text-lg font-bold">${escapeHtml(title)}</div>
-          <div class="text-sm text-gray-500">${dateStr} · 참가자 ${(data.today||[]).length}명</div>
-        </button>
-        <button onclick="deleteEventPrompt('${d.id}', '${escapeAttr(title)}')"
-          class="flex-shrink-0 w-12 bg-red-100 text-red-600 rounded-xl text-xl active:bg-red-200">🗑</button>
-      </div>`;
-    }).join('');
-  }, err=> console.error(err));
-}
-
-function deleteEventPrompt(eventId, title){
-  const pw = prompt(`'${title}' 대회를 삭제하려면 클럽 이름을 입력해 주세요.`);
-  if(pw === null) return;
-  if(pw !== clubCode){ alert('클럽 이름이 일치하지 않습니다.'); return; }
-  if(!confirm(`정말로 완전히 삭제할까요?`)) return;
-  clubRef.collection('events').doc(eventId).delete().catch(err=> alert(err.message));
-}
-
-function openStatsPanel(){
-  const today9 = new Date();
-  const yyyy = today9.getFullYear();
-  document.getElementById('statsStart').value = `${yyyy}-01-01`;
-  document.getElementById('statsEnd').value = today9.toISOString().slice(0,10);
-  document.getElementById('statsResult').innerHTML = '';
-  document.getElementById('statsPanel').classList.remove('hidden');
-}
-function closeStatsPanel(){ document.getElementById('statsPanel').classList.add('hidden'); }
-
-function calcMoneyForEvent(data){
-  const todayArr = data.today || [];
-  const memberPrize = {};
-  todayArr.forEach(p=> memberPrize[p.name] = 0);
-  if(todayArr.length === 0) return memberPrize;
-
-  const scoresObj = data.scores || {};
-  const groupsArr = data.groups ? data.groups.map(g => g.members || g) : null;
-  const rules = data.prizeRules || defaultPrizeRules();
-  const fee = (typeof data.feePerPerson === 'number') ? data.feePerPerson : 5000;
-  const nearPinsArr = data.nearPins || [];
-  const luckyArr = data.luckyWinners || null;
-  const holeInOnesArr = data.holeInOnes || [];
-
-  const totalPot = todayArr.length * fee;
-  const overallPrize = roundTo1000(totalPot * (rules.overallPct/100));
-  const groupPrizeTotal = roundTo1000(totalPot * (rules.groupPct/100));
-  const eventPrize = Math.max(0, totalPot - overallPrize - groupPrizeTotal);
-  const evSplit = rules.eventSplit || {nearPin:50, lucky:50};
-  const nearPinTotal = roundTo1000(eventPrize * ((evSplit.nearPin||0)/100));
-  const luckyTarget = eventPrize - nearPinTotal;
-
-  const scoreIsRawObj = data.scoreIsRaw || {};
-  const netScore = p => {
-    if(scoresObj[p.name] == null) return null;
-    const h = p.handicap || 0;
-    if(scoreIsRawObj[p.name]) return h > 0 ? scoresObj[p.name] - h : scoresObj[p.name];
-    if(h < 0) return scoresObj[p.name] + h;
-    return scoresObj[p.name];
-  };
-  const ranked = todayArr.filter(p=>scoresObj[p.name]!=null)
-    .map(p=>({ name:p.name, net: netScore(p) })).sort((a,b)=>a.net-b.net);
-  const overallSplit = rules.overallSplit || [50,30,20];
-  const overallPlaces = rules.overallPlaces || 3;
-  let actualOverallSum = 0;
-  ranked.slice(0, overallPlaces).forEach((w,i)=>{
-    let amt = roundTo1000(overallPrize * ((overallSplit[i]||0)/100));
-    if(actualOverallSum + amt > overallPrize) amt = Math.max(0, overallPrize - actualOverallSum);
-    actualOverallSum += amt;
-    memberPrize[w.name] = (memberPrize[w.name]||0) + amt;
+    if(snap.empty){ box.innerHTML = '<p class="text-gray-400 text-center py-3">대회가 없습니다.</p>'; return; }
+    box.innerHTML = snap.docs.map(d=>`
+      <button onclick="openEvent('${d.id}', '${escapeAttr(d.data().title||'대회')}')" class="w-full text-left bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 mb-2">
+        <div class="text-lg font-bold">${escapeHtml(d.data().title||'대회')}</div>
+      </button>`).join('');
   });
-
-  const hioByGroup = {};
-  (holeInOnesArr||[]).forEach(h=>{
-    if(!h.name || !groupsArr) return;
-    groupsArr.forEach((g,gi)=>{ if(g.find(p=>p.name===h.name)) hioByGroup[gi] = (hioByGroup[gi]||0) + (h.prize||0); });
-  });
-  const groupsInfo = (groupsArr||[]).map((g,gi)=>{
-    const scored = g.filter(p=>scoresObj[p.name]!=null);
-    const avgNet = scored.length ? scored.reduce((s,p)=>s+netScore(p),0)/scored.length : null;
-    return { groupIndex: gi, members: g, avgNet, hio: hioByGroup[gi]||0 };
-  }).filter(x=> x.avgNet!=null || x.hio>0);
-  const hioGroups = groupsInfo.filter(x=>x.hio>0).sort((a,b)=>b.hio-a.hio);
-  const normalGroups = groupsInfo.filter(x=>x.hio===0).sort((a,b)=>a.avgNet-b.avgNet);
-  const groupRanking = [...hioGroups, ...normalGroups];
-  const gSplit = rules.groupSplit || [60,40];
-  const groupPlaces = rules.groupPlaces || 2;
-  const winningGroupsList2 = groupRanking.slice(0, groupPlaces);
-  const totalWeightedUnits2 = winningGroupsList2.reduce((s,gr,i)=> s + (gSplit[i]||0) * gr.members.length, 0);
-  const valuePerUnit2 = totalWeightedUnits2 > 0 ? groupPrizeTotal / totalWeightedUnits2 : 0;
-  let actualGroupSum = 0;
-  groupRanking.forEach((gr,i)=>{
-    if(i>=groupPlaces) return;
-    let perPerson = 0;
-    if(gr.members.length>0){
-      const flatAmt = groupPrizeTotal * ((gSplit[i]||0)/100);
-      const weightedAmt = (gSplit[i]||0) * valuePerUnit2 * gr.members.length;
-      const blendedAmt = (flatAmt + weightedAmt) / 2;
-      perPerson = roundTo1000(blendedAmt / gr.members.length);
-    }
-    let actualAmt = perPerson*gr.members.length;
-    if(actualGroupSum + actualAmt > groupPrizeTotal){
-      const remaining = Math.max(0, groupPrizeTotal - actualGroupSum);
-      perPerson = gr.members.length>0 ? Math.floor(remaining/gr.members.length/1000)*1000 : 0;
-      actualAmt = perPerson*gr.members.length;
-    }
-    actualGroupSum += actualAmt;
-    gr.members.forEach(p=> memberPrize[p.name] = (memberPrize[p.name]||0) + perPerson);
-  });
-
-  const validHoles = (nearPinsArr||[]).filter(x=>x).length;
-  const nearPinPerHole = validHoles>0 ? Math.floor(nearPinTotal/validHoles/1000)*1000 : 0;
-  const actualNearPinSum = nearPinPerHole*validHoles;
-  (nearPinsArr||[]).forEach(name=>{ if(name) memberPrize[name] = (memberPrize[name]||0) + nearPinPerHole; });
-
-  const roundingAdjustment = (overallPrize-actualOverallSum)+(groupPrizeTotal-actualGroupSum)+(nearPinTotal-actualNearPinSum);
-  const luckyTotal = luckyTarget + roundingAdjustment;
-  const luckyEach1 = roundTo1000(luckyTotal/2);
-  const luckyEach2 = luckyTotal - luckyEach1;
-  if(luckyArr){
-    if(luckyArr[0]) memberPrize[luckyArr[0]] = (memberPrize[luckyArr[0]]||0) + luckyEach1;
-    if(luckyArr[1]) memberPrize[luckyArr[1]] = (memberPrize[luckyArr[1]]||0) + luckyEach2;
-  }
-  return memberPrize;
-}
-
-async function runPeriodStats(){
-  const startVal = document.getElementById('statsStart').value;
-  const endVal = document.getElementById('statsEnd').value;
-  const resultBox = document.getElementById('statsResult');
-  if(!startVal || !endVal){ alert('시작일과 종료일을 선택해 주세요.'); return; }
-  const startDate = new Date(startVal + 'T00:00:00');
-  const endDate = new Date(endVal + 'T23:59:59');
-  if(startDate > endDate){ alert('시작일이 종료일보다 늦을 수 없습니다.'); return; }
-
-  resultBox.innerHTML = '<p class="text-gray-400 text-center py-4">집계 중...</p>';
-
-  try{
-    const snap = await clubRef.collection('events')
-      .where('createdAt', '>=', startDate)
-      .where('createdAt', '<=', endDate)
-      .orderBy('createdAt', 'asc')
-      .get();
-
-    if(snap.empty){
-      resultBox.innerHTML = '<p class="text-gray-400 text-center py-4">해당 기간에 기록이 없습니다.</p>';
-      return;
-    }
-
-    const prizeTotals = {};
-    const handicapSeries = {};
-    const idByName = {};
-    const pairCounts = {};
-    const clubRecords = [];
-
-    snap.forEach(doc=>{
-      const data = doc.data();
-      const eventDate = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate() : new Date(0);
-      const dateLabel = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate().toLocaleDateString('ko-KR') : '';
-
-      const memberPrize = calcMoneyForEvent(data);
-      Object.keys(memberPrize).forEach(name=>{
-        prizeTotals[name] = (prizeTotals[name]||0) + memberPrize[name];
-      });
-
-      (data.today||[]).forEach(p=>{
-        if(p.id) idByName[p.name] = p.id;
-        if(!handicapSeries[p.name]) handicapSeries[p.name] = [];
-        handicapSeries[p.name].push({ date: eventDate, handicap: p.handicap });
-      });
-
-      const eventScores = data.scores || {};
-      const eventScoreIsRaw = data.scoreIsRaw || {};
-      const eventRanking = (data.today||[])
-        .filter(p => eventScores[p.name] != null)
-        .map(p => {
-          const h = p.handicap || 0;
-          let net;
-          if(eventScoreIsRaw[p.name]) net = h > 0 ? eventScores[p.name] - h : eventScores[p.name];
-          else net = h < 0 ? eventScores[p.name] + h : eventScores[p.name];
-          return { name: p.name, id: p.id, net };
-        })
-        .sort((a,b)=> a.net - b.net);
-
-      const eventGroups = data.groups ? data.groups.map(g => (g.members||g).map(p=>p.id||p.name)) : null;
-
-      if(eventRanking.length > 0 || eventGroups){
-        clubRecords.push({
-          title: data.title || '이름없는 대회',
-          dateLabel,
-          date: eventDate,
-          ranking: eventRanking,
-          groups: eventGroups
-        });
-      }
-
-      if(data.groups){
-        data.groups.forEach(g=>{
-          const members = (g.members||g).map(p=>p.name);
-          for(let i=0;i<members.length;i++){
-            for(let j=i+1;j<members.length;j++){
-              const key = [members[i], members[j]].sort().join('|');
-              pairCounts[key] = (pairCounts[key]||0) + 1;
-            }
-          }
-        });
-      }
-    });
-
-    const prizeRanking = Object.keys(prizeTotals)
-      .map(name=>({ name, id: idByName[name], total: prizeTotals[name] }))
-      .filter(x=>x.total > 0)
-      .sort((a,b)=> b.total - a.total);
-
-    const improveRanking = Object.keys(handicapSeries)
-      .map(name=>{
-        const series = handicapSeries[name].slice().sort((a,b)=> a.date - b.date);
-        if(series.length < 2) return null;
-        const first = series[0].handicap;
-        const last = series[series.length-1].handicap;
-        return { name, id: idByName[name], first, last, improvement: first - last, count: series.length };
-      })
-      .filter(x=>x)
-      .sort((a,b)=> b.improvement - a.improvement);
-
-    const avgHandicapList = Object.keys(handicapSeries)
-      .map(name=>{
-        const series = handicapSeries[name];
-        const avg = series.reduce((s,x)=>s+x.handicap,0) / series.length;
-        return { name, id: idByName[name], avg, count: series.length };
-      })
-      .sort((a,b)=> a.avg - b.avg);
-
-    const pairTop3 = Object.keys(pairCounts)
-      .map(key=>{
-        const [n1, n2] = key.split('|');
-        return { n1, n2, id1: idByName[n1], id2: idByName[n2], count: pairCounts[key] };
-      })
-      .sort((a,b)=> b.count - a.count)
-      .slice(0, 3);
-
-    clubRecords.sort((a,b)=> a.date - b.date);
-    renderStatsResult(prizeRanking, improveRanking, snap.size, avgHandicapList, pairTop3, clubRecords);
-  } catch(err){
-    console.error(err);
-    resultBox.innerHTML = `<p class="text-red-600 text-center py-4">집계 오류: ${err.message}</p>`;
-  }
-}
-
-function renderStatsResult(prizeRanking, improveRanking, eventCount, avgHandicapList, pairTop3, clubRecords){
-  const box = document.getElementById('statsResult');
-  box.innerHTML = `
-    <p class="text-sm text-gray-500 mb-3">집계 대상: 대회 ${eventCount}개</p>
-    <p class="text-lg font-extrabold mb-2 mt-2">👥 ① 기간별 회원 기록</p>
-    <div class="bg-orange-50 border-2 border-orange-300 rounded-xl p-3 mb-3">
-      <p class="text-base font-extrabold mb-2">💰 상금왕 순위 (합산 상금)</p>
-      ${prizeRanking.length ? prizeRanking.map((r,i)=>`
-        <div class="flex justify-between items-center py-1 ${i===0?'font-extrabold text-orange-700 text-lg':'text-base'}">
-          <span>${i+1}위 ${i===0?'👑 ':''}${escapeHtml(r.id||r.name)}</span>
-          <span>${r.total.toLocaleString()}원</span>
-        </div>`).join('') : '<p class="text-gray-400 text-center py-2">상금 기록이 없습니다.</p>'}
-    </div>
-    <div class="bg-blue-50 border-2 border-blue-300 rounded-xl p-3 mb-3">
-      <p class="text-base font-extrabold mb-2">📈 향상왕 순위 (핸디캡 감소량)</p>
-      <p class="text-xs text-gray-500 mb-2">기간 내 첫 대회 핸디캡 → 마지막 대회 핸디캡 기준</p>
-      ${improveRanking.length ? improveRanking.map((r,i)=>`
-        <div class="flex justify-between items-center py-1 ${i===0?'font-extrabold text-blue-700 text-lg':'text-base'}">
-          <span>${i+1}위 ${i===0?'🚀 ':''}${escapeHtml(r.id||r.name)}</span>
-          <span>${r.first} → ${r.last} (${r.improvement>0?'-':'+'}${Math.abs(r.improvement).toFixed(1)})</span>
-        </div>`).join('') : '<p class="text-gray-400 text-center py-2">2회 이상 참가한 회원이 없습니다.</p>'}
-    </div>
-    <div class="bg-green-50 border-2 border-green-300 rounded-xl p-3 mb-3">
-      <p class="text-base font-extrabold mb-2">📊 회원별 평균 핸디캡</p>
-      ${avgHandicapList && avgHandicapList.length ? avgHandicapList.map(r=>`
-        <div class="flex justify-between items-center py-1 text-base">
-          <span>${escapeHtml(r.id||r.name)}</span>
-          <span>평균 ${r.avg.toFixed(1)} (${r.count}회 참가)</span>
-        </div>`).join('') : '<p class="text-gray-400 text-center py-2">기록이 없습니다.</p>'}
-    </div>
-    <div class="bg-pink-50 border-2 border-pink-300 rounded-xl p-3 mb-4">
-      <p class="text-base font-extrabold mb-2">💞 인연 Top3 (같은 조 최다 횟수)</p>
-      ${pairTop3 && pairTop3.length ? pairTop3.map((p,i)=>`
-        <div class="flex justify-between items-center py-1 ${i===0?'font-extrabold text-pink-700 text-lg':'text-base'}">
-          <span>${i+1}위 ${escapeHtml(p.id1||p.n1)} ↔ ${escapeHtml(p.id2||p.n2)}</span>
-          <span>${p.count}회</span>
-        </div>`).join('') : '<p class="text-gray-400 text-center py-2">같은 조 기록이 없습니다.</p>'}
-    </div>
-    <p class="text-lg font-extrabold mb-2 mt-4">🏌️ ② 기간별 클럽 기록</p>
-    ${clubRecords && clubRecords.length ? clubRecords.map(ev=>`
-      <div class="bg-gray-50 border-2 border-gray-300 rounded-xl p-3 mb-3">
-        <p class="text-base font-extrabold mb-1">${escapeHtml(ev.title)} <span class="text-xs text-gray-500 font-normal">(${ev.dateLabel})</span></p>
-        ${ev.ranking.length ? `
-        <p class="text-sm font-bold text-gray-600 mt-2 mb-1">핸디적용타수 순위</p>
-        <div class="text-sm text-gray-700">${ev.ranking.map((r,i)=>`${i+1}. ${escapeHtml(r.id||r.name)} ${formatScore(r.net)}`).join(' · ')}</div>
-        ` : ''}
-        ${ev.groups ? `
-        <p class="text-sm font-bold text-gray-600 mt-2 mb-1">조편성</p>
-        <div class="text-sm text-gray-700">${ev.groups.map((g,gi)=>`${gi+1}조: ${g.map(n=>escapeHtml(n)).join(', ')}`).join(' / ')}</div>
-        ` : ''}
-      </div>`).join('') : '<p class="text-gray-400 text-center py-2">기록이 없습니다.</p>'}
-  `;
 }
 
 function createEvent(){
-  const btnGuard = document.getElementById('createEventBtn');
-  if(btnGuard && btnGuard.disabled) return;
-
-  const msg = document.getElementById('createEventMsg');
-  const setMsg = (text, isError)=>{
-    if(!msg) return;
-    msg.textContent = text || '';
-    msg.className = 'text-sm mt-2 text-center ' + (isError ? 'text-red-600 font-bold' : 'text-gray-500');
-  };
-
-  try{
-    if(!clubRef){
-      setMsg('클럽 연결이 끊어졌습니다. 새로고침 후 다시 시도해 주세요.', true);
-      return;
-    }
-    const input = document.getElementById('newEventTitle');
-    const btn = document.getElementById('createEventBtn');
-    let title = (input.value || '').trim();
-    if(!title){
-      title = new Date().toLocaleDateString('ko-KR', { month:'long', day:'numeric' }) + ' 모임';
-    }
-
-    btn.disabled = true;
-    btn.textContent = '처리중...';
-
-    const docRef = clubRef.collection('events').doc();
-    docRef.set({
-      title,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      today: [], groups: null, scores: {}, par3Count: 4, nearPins: [], luckyExcluded: [], luckyWinners: null,
-      groupSize: 4, feePerPerson: 5000, prizeRules: defaultPrizeRules(),
-      holeInOnes: [], locked: false, lockPin: '', luckyCount: 2, groupPrizeOverride: {},
-      shareOptions: { nearPin: true, lucky: true, money: true },
-      scoreIsRaw: {}, forbiddenPairs: []
-    }).then(()=>{
-      input.value = '';
-      btn.disabled = false;
-      btn.textContent = '시작';
-      openEvent(docRef.id, title);
-    }).catch(err=>{
-      console.error(err);
-      btn.disabled = false;
-      btn.textContent = '시작';
-      setMsg('오류: ' + err.message, true);
-    });
-  } catch(err){
-    console.error(err);
-    setMsg('예상치 못한 오류: ' + err.message, true);
-  }
+  const title = document.getElementById('newEventTitle').value.trim() || '새 대회';
+  const docRef = clubRef.collection('events').doc();
+  docRef.set({
+    title,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    today: [], groups: null, scores: {}, par3Count: 4, nearPins: [], feePerPerson: 5000, prizeRules: defaultPrizeRules()
+  }).then(()=> openEvent(docRef.id, title));
 }
 
+let pendingEventTitle = '';
 function openEvent(id, title){
   eventId = id;
   eventRef = clubRef.collection('events').doc(id);
@@ -976,2233 +523,262 @@ function openEvent(id, title){
   document.getElementById('modeGate').classList.remove('hidden');
 }
 
-let pendingEventTitle = '';
 let userMode = 'admin';
-
 function enterModeGuarded(mode){
   if(mode === 'admin'){
-    const pw = prompt('🕵️ 주최측의 농간(총무 모드) 비밀번호를 입력해 주세요.');
-    if(pw === null) return;
-    if(pw !== clubCode){ alert('비밀번호가 일치하지 않습니다.'); return; }
+    const pw = prompt('비밀번호를 입력하세요.');
+    if(pw !== clubCode){ alert('일치하지 않습니다.'); return; }
   }
-  enterMode(mode);
-}
-
-function enterMode(mode){
   userMode = mode;
-  localStorage.setItem('golf_user_mode', mode);
   document.getElementById('eventTitleLabel').textContent = pendingEventTitle;
   document.getElementById('modeGate').classList.add('hidden');
   document.getElementById('appRoot').classList.remove('hidden');
-  memberEditUnlocked = false;
-  applyModeUI();
   attachEventListener();
-  let defaultTab = 'members';
-  if(mode === 'member') defaultTab = 'groups';
-  if(mode === 'captain') defaultTab = 'groupscore';
-  if(mode === 'viewGroups') defaultTab = 'groups';
-  if(mode === 'viewResults') defaultTab = 'money';
-  showTab(defaultTab);
-}
-
-function applyModeUI(){
-  const isAdmin = (userMode === 'admin');
-  const isMember = (userMode === 'member');
-  const isCaptain = (userMode === 'captain');
-  const isViewGroups = (userMode === 'viewGroups');
-  const isViewResults = (userMode === 'viewResults');
-  const restricted = !isAdmin;
-
-  ['members','today','score'].forEach(t=>{
-    const btn = document.getElementById('nav-'+t);
-    if(btn) btn.classList.toggle('hidden', restricted);
-  });
-  const myscoreBtn = document.getElementById('nav-myscore');
-  if(myscoreBtn) myscoreBtn.classList.toggle('hidden', !isMember);
-  const groupscoreBtn = document.getElementById('nav-groupscore');
-  if(groupscoreBtn) groupscoreBtn.classList.toggle('hidden', !isCaptain);
-
-  const groupsBtn = document.getElementById('nav-groups');
-  const moneyBtn = document.getElementById('nav-money');
-  if(isViewGroups){ if(groupsBtn) groupsBtn.classList.remove('hidden'); if(moneyBtn) moneyBtn.classList.add('hidden'); }
-  else if(isViewResults){ if(groupsBtn) groupsBtn.classList.add('hidden'); if(moneyBtn) moneyBtn.classList.remove('hidden'); }
-  else { if(groupsBtn) groupsBtn.classList.remove('hidden'); if(moneyBtn) moneyBtn.classList.remove('hidden'); }
-
-  const grid = document.querySelector('nav.grid');
-  if(grid){
-    if(isAdmin) grid.className = 'grid grid-cols-5 gap-1 p-2 bg-white sticky top-[76px] z-10 shadow';
-    else if(isMember || isCaptain) grid.className = 'grid grid-cols-3 gap-1 p-2 bg-white sticky top-[76px] z-10 shadow';
-    else if(isViewGroups || isViewResults) grid.className = 'grid grid-cols-1 gap-1 p-2 bg-white sticky top-[76px] z-10 shadow';
-    else grid.className = 'grid grid-cols-2 gap-1 p-2 bg-white sticky top-[76px] z-10 shadow';
-  }
-  const lockBar = document.getElementById('lockStatusText');
-  if(lockBar && lockBar.parentElement) lockBar.parentElement.classList.toggle('hidden', restricted);
-  const groupControls = document.getElementById('groupEditControls');
-  if(groupControls) groupControls.classList.toggle('hidden', restricted);
-  ['prizeRulesCard','computeMoneyCard','forbiddenPairsCard'].forEach(id=>{
-    const el = document.getElementById(id);
-    if(el) el.classList.toggle('hidden', restricted);
-  });
-  const modeBadge = document.getElementById('modeBadge');
-  if(modeBadge){
-    modeBadge.textContent = isAdmin ? '🕵️ 주최측의 농간' : (isCaptain ? '🏠 방장 모드' : (isViewGroups ? '🙋 조편성 보기' : (isViewResults ? '🏆 경기 결과 보기' : '🙋 회원 모드')));
-  }
+  showTab(mode === 'admin' ? 'today' : 'groups');
 }
 
 function switchMode(){
-  document.getElementById('modeGateEventTitle').textContent = `대회: ${document.getElementById('eventTitleLabel').textContent}`;
   document.getElementById('appRoot').classList.add('hidden');
   document.getElementById('modeGate').classList.remove('hidden');
 }
 
 function changeEvent(){
-  if(eventUnsub) eventUnsub();
-  eventRef = null; eventId = null;
   document.getElementById('appRoot').classList.add('hidden');
   document.getElementById('eventGate').classList.remove('hidden');
 }
-
-let todayPushPending = false;
-let scorePushPending = false;
-let holeInOnePushPending = false;
 
 function attachEventListener(){
   if(eventUnsub) eventUnsub();
   eventUnsub = eventRef.onSnapshot(doc=>{
     if(!doc.exists) return;
-    const data = doc.data();
-    applyingRemote = true;
-    if(!todayPushPending) today = data.today || [];
-    currentGroups = (data.groups || null) ? data.groups.map(g => g.members || g) : null;
-    luckyExcluded = data.luckyExcluded || [];
-    luckyWinners = data.luckyWinners || null;
-    if(!scorePushPending) scores = data.scores || {};
-    scoreIsRaw = data.scoreIsRaw || {};
-    par3Count = (typeof data.par3Count === 'number') ? data.par3Count : 4;
-    nearPins = data.nearPins || [];
-    groupSize = (typeof data.groupSize === 'number') ? data.groupSize : 4;
-    feePerPerson = (typeof data.feePerPerson === 'number') ? data.feePerPerson : 5000;
-    prizeRules = data.prizeRules || defaultPrizeRules();
-    holeInOnes = holeInOnePushPending ? holeInOnes : (data.holeInOnes || []);
-    locked = !!data.locked;
-    lockPin = data.lockPin || '';
-    luckyCount = (typeof data.luckyCount === 'number') ? data.luckyCount : 2;
-    groupPrizeOverride = data.groupPrizeOverride || {};
-    shareOptions = data.shareOptions || { nearPin: true, lucky: true, money: true };
-    forbiddenPairs = data.forbiddenPairs || [];
-
+    const d = doc.data();
+    today = d.today || [];
+    currentGroups = d.groups ? d.groups.map(g=>g.members||g) : null;
+    scores = d.scores || {};
     renderToday();
     renderGroups();
-    renderGroupSizeButtons();
-    renderLockBar();
-    if(!document.getElementById('tab-groups').classList.contains('hidden')) renderForbiddenPairsUI();
-    if(!document.getElementById('tab-score').classList.contains('hidden')){ renderScoreTab(); renderHoleInOneList(); }
-    if(!document.getElementById('tab-money').classList.contains('hidden')) renderPrizeRulesForm();
-    if(userMode === 'member'){ renderMyPlayerSelect(); showMyScoreBox(); }
-    if(userMode === 'captain'){ renderMyGroupSelect(); showGroupScoreList(); }
-    computeMoney();
-    applyingRemote = false;
-  }, err=> console.error(err));
+  });
 }
 
 function pushState(partial){
-  if(!eventRef) return Promise.resolve();
-  return eventRef.set(partial, { merge: true }).catch(err=> console.error(err));
+  if(eventRef) return eventRef.set(partial, { merge: true });
 }
 
 function showTab(name){
   ['members','today','groups','score','money','myscore','groupscore'].forEach(t=>{
-    document.getElementById('tab-'+t).classList.toggle('hidden', t!==name);
-    const btn = document.getElementById('nav-'+t);
-    if(t===name){
-      btn.classList.add('bg-green-700','text-white','border-green-700');
-      btn.classList.remove('bg-white','text-gray-700','border-gray-300');
-    } else {
-      btn.classList.remove('bg-green-700','text-white','border-green-700');
-      btn.classList.add('bg-white','text-gray-700','border-gray-300');
-    }
+    const el = document.getElementById('tab-'+t);
+    if(el) el.classList.toggle('hidden', t !== name);
   });
-  if(name==='score'){ renderScoreTab(); renderHoleInOneList(); }
-  if(name==='money'){ renderPrizeRulesForm(); }
-  if(name==='myscore'){ renderMyEditGate(); renderMyPlayerSelect(); showMyScoreBox(); }
-  if(name==='groupscore'){ renderMyGroupSelect(); showGroupScoreList(); }
-  if(name==='groups'){ renderForbiddenPairsUI(); }
-}
-
-function normalizeMember(m){
-  if(typeof m === 'string') return { id: '', name: m, handicap: 0 };
-  return { handicap: 0, ...m };
 }
 
 function renderMembers(){
   const list = document.getElementById('memberList');
   document.getElementById('memberCount').textContent = members.length;
-  if(members.length===0){
-    list.innerHTML = '<p class="text-gray-400 text-center py-4">등록된 회원이 없습니다.</p>';
-  } else {
-    const active = document.activeElement;
-    const activeId = (active && active.id && active.id.startsWith('mhc-')) ? active.id : null;
-    const selStart = active ? active.selectionStart : null;
-    const selEnd = active ? active.selectionEnd : null;
-
-    list.innerHTML = members.map((raw,i)=>{
-      const m = normalizeMember(raw);
-      return `
-      <div class="flex items-center justify-between bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 gap-2">
-        <div class="flex-1 min-w-0">
-          <div class="text-lg font-bold">${m.id ? escapeHtml(m.id) : '(아이디 미등록)'}</div>
-          <div class="text-sm text-gray-500">${escapeHtml(m.name)}</div>
-        </div>
-        <button type="button" onclick="toggleMemberHandicapSign(${i})"
-          class="w-9 h-9 flex-shrink-0 border-2 border-gray-300 rounded-lg text-lg font-bold ${m.handicap<0 ? 'bg-red-100 text-red-600 border-red-300' : 'text-gray-700'}">−</button>
-        <input id="mhc-${i}" type="text" inputmode="decimal" value="${Math.abs(m.handicap||0) || ''}" placeholder="0.0"
-          oninput="updateMemberHandicap(${i}, this.value)" onfocus="this.select()"
-          class="w-16 border-2 border-gray-300 rounded-lg px-2 py-2 text-lg text-right outline-none">
-        <button onclick="deleteMember(${i})" class="text-red-600 font-bold text-base bg-red-100 px-3 py-2 rounded-lg active:bg-red-200 flex-shrink-0">삭제</button>
-      </div>`;
-    }).join('');
-
-    if(activeId){
-      const el = document.getElementById(activeId);
-      if(el){ el.focus(); try{ el.setSelectionRange(selStart, selEnd); }catch(e){} }
-    }
-  }
-  renderMemberSelect();
-}
-
-let memberHandicapDebounce = {};
-function updateMemberHandicap(i, val){
-  const m = normalizeMember(members[i]);
-  const v = parseFloat(val);
-  const magnitude = (isNaN(v) || v <= 0) ? 0 : Math.round(v*10)/10;
-  const sign = (m.handicap < 0) ? -1 : 1;
-  m.handicap = magnitude === 0 ? 0 : sign * magnitude;
-  members[i] = m;
-  clearTimeout(memberHandicapDebounce[i]);
-  memberHandicapDebounce[i] = setTimeout(()=> pushClubState({ members }), 400);
-}
-
-function toggleMemberHandicapSign(i){
-  const m = normalizeMember(members[i]);
-  m.handicap = Math.round((m.handicap * -1) * 10) / 10;
-  members[i] = m;
-  pushClubState({ members });
-  renderMembers();
+  list.innerHTML = members.map((m,i)=>`
+    <div class="flex justify-between items-center bg-gray-50 p-3 rounded-xl border">
+      <div><b>${escapeHtml(m.id||m.name)}</b> (${escapeHtml(m.name)})</div>
+      <button onclick="members.splice(${i},1);pushClubState({members});renderMembers();" class="text-red-500 font-bold">삭제</button>
+    </div>`).join('');
+  const sel = document.getElementById('memberSelect');
+  sel.innerHTML = '<option value="">-- 선택 --</option>' + members.map(m=>`<option value="${m.name}">${m.id||m.name}</option>`).join('');
 }
 
 function addMember(){
-  const idInput = document.getElementById('newMemberId');
-  const nameInput = document.getElementById('newMemberName');
-  const id = idInput.value.trim();
-  const name = nameInput.value.trim();
-  if(!id){ alert('아이디를 입력해 주세요.'); return; }
-  if(!name){ alert('이름을 입력해 주세요.'); return; }
-  if(members.some(m => normalizeMember(m).id === id)){ alert('이미 등록된 아이디입니다.'); return; }
-  if(members.some(m => normalizeMember(m).name === name)){ alert('이미 등록된 이름입니다.'); return; }
-  members.push({ id, name });
+  const id = document.getElementById('newMemberId').value.trim();
+  const name = document.getElementById('newMemberName').value.trim();
+  if(!id || !name) return;
+  members.push({ id, name, handicap: 0 });
   pushClubState({ members });
-  idInput.value = '';
-  nameInput.value = '';
+  document.getElementById('newMemberId').value = '';
+  document.getElementById('newMemberName').value = '';
   renderMembers();
-}
-
-function deleteMember(i){
-  const m = normalizeMember(members[i]);
-  if(!confirm(`'${m.name}' 회원을 삭제할까요?`)) return;
-  members.splice(i,1);
-  pushClubState({ members });
-  renderMembers();
-}
-
-function renderMemberSelect(){
-  const sel = document.getElementById('memberSelect');
-  const normalized = members.map(normalizeMember);
-  const sorted = [...normalized].sort((a,b)=> (a.id||a.name).localeCompare(b.id||b.name, 'ko'));
-  sel.innerHTML = '<option value="">-- 회원 선택 --</option>' +
-    sorted.map(m=>`<option value="${escapeHtml(m.name)}">${m.id ? escapeHtml(m.id) : escapeHtml(m.name)}${m.id ? ` (${escapeHtml(m.name)})` : ''}</option>`).join('');
 }
 
 function addParticipant(){
-  if(checkLocked()) return;
-  const sel = document.getElementById('memberSelect');
-  const name = sel.value;
-  if(!name){ alert('회원을 선택해 주세요.'); return; }
-  if(today.find(p=>p.name===name)){ alert('이미 추가된 참가자입니다.'); return; }
-  const matched = members.map(normalizeMember).find(m=>m.name===name);
-  today.push({ name, id: matched ? matched.id : '', handicap: matched ? (matched.handicap || 0) : 0 });
+  const name = document.getElementById('memberSelect').value;
+  if(!name) return;
+  const m = members.find(x=>x.name===name);
+  today.push({ name, id: m?m.id:'', handicap: m?m.handicap:0 });
   pushState({ today });
-  renderToday();
-}
-
-let feeDebounce = null;
-function updateFee(val){
-  if(checkLocked()) return;
-  const v = parseInt(val, 10);
-  feePerPerson = isNaN(v) ? 0 : v;
-  document.getElementById('totalFeePreview').textContent = (today.length*feePerPerson).toLocaleString()+'원';
-  clearTimeout(feeDebounce);
-  feeDebounce = setTimeout(()=> pushState({ feePerPerson }), 400);
-}
-
-function removeParticipant(i){
-  if(checkLocked()) return;
-  today.splice(i,1);
-  pushState({ today });
-  renderToday();
-}
-
-let handicapDebounce = {};
-function updateHandicap(i, val){
-  if(checkLocked()) return;
-  const v = parseFloat(val);
-  const magnitude = (isNaN(v) || v <= 0) ? 0 : Math.round(v*10)/10;
-  const sign = (today[i].handicap < 0) ? -1 : 1;
-  today[i].handicap = magnitude === 0 ? 0 : sign * magnitude;
-  document.getElementById('totalFeePreview').textContent = (today.length*feePerPerson).toLocaleString()+'원';
-  clearTimeout(handicapDebounce[i]);
-  todayPushPending = true;
-  handicapDebounce[i] = setTimeout(()=>{
-    pushState({ today }).then(()=>{ todayPushPending = false; });
-    syncHandicapToMember(today[i].name, today[i].handicap);
-  }, 400);
-}
-
-function toggleHandicapSign(i){
-  if(checkLocked()) return;
-  today[i].handicap = Math.round((today[i].handicap * -1) * 10) / 10;
-  todayPushPending = true;
-  pushState({ today }).then(()=>{ todayPushPending = false; });
-  syncHandicapToMember(today[i].name, today[i].handicap);
-  renderToday();
-}
-
-function syncHandicapToMember(name, handicap){
-  const idx = members.findIndex(raw => normalizeMember(raw).name === name);
-  if(idx === -1) return;
-  const m = normalizeMember(members[idx]);
-  m.handicap = handicap;
-  members[idx] = m;
-  pushClubState({ members });
-  if(!document.getElementById('tab-members').classList.contains('hidden')) renderMembers();
-}
-
-function toggleHandicapPaste(){
-  const box = document.getElementById('handicapPasteBox');
-  if(box) box.classList.toggle('hidden');
-}
-
-function applyHandicapPaste(){
-  if(checkLocked()) return;
-  const raw = document.getElementById('handicapPasteInput').value;
-  const resultEl = document.getElementById('handicapPasteResult');
-  const lines = raw.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
-  if(lines.length===0){ resultEl.textContent = '붙여넣은 내용이 없습니다.'; resultEl.className='text-sm mt-2 text-red-600'; return; }
-
-  const matched = [];
-  const unmatched = [];
-
-  lines.forEach(line=>{
-    const m = line.match(/^(.+?)\s+([+-]?\d+(?:\.\d+)?)\s*$/);
-    if(!m){ unmatched.push(line); return; }
-    const label = m[1].trim();
-    const handicap = Math.round(parseFloat(m[2]) * 10) / 10;
-    const participant = today.find(p => (p.id && p.id === label) || p.name === label);
-    if(participant){
-      participant.handicap = handicap;
-      matched.push(`${label} → ${handicap}`);
-      syncHandicapToMember(participant.name, handicap);
-    } else {
-      unmatched.push(line);
-    }
-  });
-
-  pushState({ today });
-  renderToday();
-
-  let msg = `✅ ${matched.length}명 반영 완료.`;
-  if(unmatched.length>0){
-    msg += ` ⚠️ 미매칭(${unmatched.length}개): ${unmatched.join(' / ')}`;
-  }
-  resultEl.textContent = msg;
-  resultEl.className = 'text-sm mt-2 ' + (unmatched.length>0 ? 'text-red-600 font-bold' : 'text-green-600');
-}
-
-function toggleScorePaste(){
-  const box = document.getElementById('scorePasteBox');
-  if(box) box.classList.toggle('hidden');
-}
-
-function applyScorePaste(){
-  if(checkLocked()) return;
-  const raw = document.getElementById('scorePasteInput').value;
-  const typeEl = document.querySelector('input[name="scorePasteType"]:checked');
-  const pasteType = typeEl ? typeEl.value : 'applied';
-  const resultEl = document.getElementById('scorePasteResult');
-  const lines = raw.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
-  if(lines.length===0){ resultEl.textContent = '붙여넣은 내용이 없습니다.'; resultEl.className='text-sm mt-2 text-red-600'; return; }
-
-  const matched = [];
-  const unmatched = [];
-
-  lines.forEach(line=>{
-    const m = line.match(/^(.+?)\s+([+-]?\d+(?:\.\d+)?)\s*$/);
-    if(!m){ unmatched.push(line); return; }
-    const label = m[1].trim();
-    const score = parseScoreInput(m[2]);
-    if(score === null){ unmatched.push(line); return; }
-    const participant = today.find(p => (p.id && p.id === label) || p.name === label);
-    if(participant){
-      scores[participant.name] = score;
-      if(pasteType === 'raw') scoreIsRaw[participant.name] = true;
-      else delete scoreIsRaw[participant.name];
-      matched.push(`${label} → ${formatScore(score)}`);
-    } else {
-      unmatched.push(line);
-    }
-  });
-
-  pushState({ scores, scoreIsRaw });
-  renderScoreTab();
-
-  let msg = `✅ ${matched.length}명 반영 완료.`;
-  if(unmatched.length>0){
-    msg += ` ⚠️️ 미매칭(${unmatched.length}개): ${unmatched.join(' / ')}`;
-  }
-  resultEl.textContent = msg;
-  resultEl.className = 'text-sm mt-2 ' + (unmatched.length>0 ? 'text-red-600 font-bold' : 'text-green-600');
-}
-
-function clearToday(){
-  if(checkLocked()) return;
-  if(today.length===0) return;
-  if(!confirm('오늘 참가자 명단을 전부 삭제할까요?')) return;
-  today = [];
-  currentGroups = null;
-  scores = {};
-  nearPins = [];
-  luckyWinners = null;
-  pushState({ today, groups: null, scores: {}, nearPins: [], luckyWinners: null });
-  renderToday();
-  document.getElementById('groupResult').innerHTML = '';
-  document.getElementById('moneyResult').innerHTML = '';
 }
 
 function renderToday(){
-  const list = document.getElementById('todayList');
   document.getElementById('todayCount').textContent = today.length;
-  document.getElementById('totalFeePreview').textContent = (today.length*feePerPerson).toLocaleString()+'원';
-  const feeInputEl = document.getElementById('feeInput');
-  if(feeInputEl && document.activeElement !== feeInputEl) feeInputEl.value = feePerPerson;
-
-  const active = document.activeElement;
-  const activeId = (active && active.id && active.id.startsWith('hc-')) ? active.id : null;
-  const selStart = active ? active.selectionStart : null;
-  const selEnd = active ? active.selectionEnd : null;
-
-  if(today.length===0){
-    list.innerHTML = '<p class="text-gray-400 text-center py-4">추가된 참가자가 없습니다.</p>';
-    return;
-  }
-  list.innerHTML = today.map((p,i)=>`
-    <div class="bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3">
-      <div class="flex justify-between items-center mb-2">
-        <span class="text-lg font-bold">${escapeHtml(p.id||p.name)}</span>
-        <button onclick="removeParticipant(${i})" class="text-red-600 font-bold text-base bg-red-100 px-3 py-2 rounded-lg active:bg-red-200">삭제</button>
-      </div>
-      <div class="flex items-center gap-2">
-        <label class="text-base text-gray-600 whitespace-nowrap">핸디캡</label>
-        <button type="button" onclick="toggleHandicapSign(${i})"
-          class="w-11 h-11 flex-shrink-0 border-2 border-gray-300 rounded-lg text-xl font-bold ${p.handicap<0 ? 'bg-red-100 text-red-600 border-red-300' : 'text-gray-700'} active:bg-gray-200">−</button>
-        <input id="hc-${i}" type="text" inputmode="decimal" value="${Math.abs(p.handicap || 0) || ''}"
-          placeholder="0.0"
-          oninput="updateHandicap(${i}, this.value)"
-          onfocus="this.select()"
-          class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-3 py-2 text-lg text-right outline-none focus:border-green-600">
-      </div>
+  document.getElementById('totalFeePreview').textContent = (today.length*feePerPerson).toLocaleString() + '원';
+  document.getElementById('todayList').innerHTML = today.map((p,i)=>`
+    <div class="flex justify-between items-center p-3 bg-white border rounded-xl">
+      <b>${escapeHtml(p.id||p.name)}</b>
+      <div>핸디: <input type="number" step="0.1" value="${p.handicap||0}" onchange="today[${i}].handicap=parseFloat(this.value);pushState({today});" class="w-16 border rounded px-1 text-right"></div>
+      <button onclick="today.splice(${i},1);pushState({today});" class="text-red-500 text-sm">삭제</button>
     </div>`).join('');
-
-  if(activeId){
-    const el = document.getElementById(activeId);
-    if(el){ el.focus(); try{ el.setSelectionRange(selStart, selEnd); }catch(e){} }
-  }
 }
 
-function renderScoreTab(){
-  const box = document.getElementById('scoreList');
-  document.getElementById('par3CountInput').value = par3Count;
-
-  let changed = false;
-  Object.keys(scores).forEach(n=>{
-    if(!today.find(p=>p.name===n)){ delete scores[n]; changed = true; }
-  });
-  if(changed) pushState({ scores });
-
-  if(today.length===0){
-    box.innerHTML = '<p class="text-gray-400 text-center py-4">참가자를 먼저 추가해 주세요.</p>';
-  } else {
-    const active = document.activeElement;
-    const activeId = (active && active.id && active.id.startsWith('sc-')) ? active.id : null;
-    const selStart = active ? active.selectionStart : null;
-    const selEnd = active ? active.selectionEnd : null;
-
-    box.innerHTML = today.map(p=>`
-      <div class="flex justify-between items-center bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3">
-        <span class="text-lg font-bold">${escapeHtml(p.id||p.name)}</span>
-        <input id="sc-${escapeAttr(p.name)}" type="text" inputmode="text" placeholder="82 또는 +10"
-          value="${scores[p.name] != null ? scores[p.name] : ''}"
-          oninput="updateScore('${escapeAttr(p.name)}', this.value)"
-          onfocus="this.select()"
-          class="w-24 border-2 border-gray-300 rounded-lg px-2 py-2 text-lg text-right outline-none focus:border-green-600">
-      </div>`).join('');
-
-    if(activeId){
-      const el = document.getElementById(activeId);
-      if(el){ el.focus(); try{ el.setSelectionRange(selStart, selEnd); }catch(e){} }
-    }
-  }
-  renderNearPinList();
-}
-
-let scoreDebounce = {};
-function updateScore(name, val){
-  if(checkLocked()) return;
-  const v = parseScoreInput(val);
-  if(val === '' || v === null) delete scores[name];
-  else scores[name] = v;
-  if(scoreIsRaw[name]) delete scoreIsRaw[name];
-  clearTimeout(scoreDebounce[name]);
-  scorePushPending = true;
-  scoreDebounce[name] = setTimeout(()=>{
-    pushState({ scores, scoreIsRaw }).then(()=>{ scorePushPending = false; });
-  }, 400);
-}
-
-let myPlayerName = null;
-function renderMyEditGate(){
-  const lockedCard = document.getElementById('myEditLockedCard');
-  const unlockedCard = document.getElementById('myEditUnlockedCard');
-  if(!lockedCard || !unlockedCard) return;
-  lockedCard.classList.toggle('hidden', memberEditUnlocked);
-  unlockedCard.classList.toggle('hidden', !memberEditUnlocked);
-}
-
-function unlockMemberEdit(){
-  const pw = prompt('비밀번호(클럽 이름)를 입력해 주세요.');
-  if(pw === null) return;
-  if(pw !== clubCode){ alert('비밀번호가 일치하지 않습니다.'); return; }
-  memberEditUnlocked = true;
-  renderMyEditGate();
-  renderMyPlayerSelect();
-  showMyScoreBox();
-}
-
-function renderMyPlayerSelect(){
-  const sel = document.getElementById('myPlayerSelect');
-  if(!sel) return;
-  const sorted = [...today].sort((a,b)=> a.name.localeCompare(b.name, 'ko'));
-  sel.innerHTML = '<option value="">-- 이름 선택 --</option>' +
-    sorted.map(p=>`<option value="${escapeHtml(p.name)}" ${myPlayerName===p.name?'selected':''}>${escapeHtml(p.id||p.name)}</option>`).join('');
-
-  const saved = eventId ? localStorage.getItem('golf_player_' + eventId) : null;
-  if(!myPlayerName && saved && today.find(p=>p.name===saved)){
-    myPlayerName = saved;
-    sel.value = saved;
-  }
-  if(myPlayerName) showMyScoreBox();
-}
-
-function chooseMyPlayer(name){
-  myPlayerName = name || null;
-  if(myPlayerName && eventId) localStorage.setItem('golf_player_' + eventId, myPlayerName);
-  showMyScoreBox();
-}
-
-function showMyScoreBox(){
-  const box = document.getElementById('myScoreBox');
-  if(!box) return;
-  if(!memberEditUnlocked || !myPlayerName){ box.classList.add('hidden'); return; }
-  box.classList.remove('hidden');
-
-  const p = today.find(t=>t.name===myPlayerName);
-  if(!p) return;
-
-  const groupInfo = document.getElementById('myGroupInfo');
-  let groupText = '조편성 결과가 아직 없습니다.';
-  if(currentGroups){
-    const gi = currentGroups.findIndex(g=>g.find(x=>x.name===myPlayerName));
-    if(gi >= 0) groupText = `${gi+1}조 입니다.`;
-  }
-  groupInfo.textContent = groupText;
-
-  const idInput = document.getElementById('myIdInput');
-  const nameInput = document.getElementById('myNameInput');
-  if(document.activeElement !== idInput) idInput.value = p.id || '';
-  if(document.activeElement !== nameInput) nameInput.value = p.name || '';
-
-  const hcInput = document.getElementById('myHandicapInput');
-  const hcBtn = document.getElementById('myHandicapSignBtn');
-  if(document.activeElement !== hcInput) hcInput.value = Math.abs(p.handicap||0) || '';
-  if(hcBtn) hcBtn.className = 'w-11 h-11 flex-shrink-0 border-2 border-gray-300 rounded-lg text-xl font-bold ' + (p.handicap<0 ? 'bg-red-100 text-red-600 border-red-300' : 'text-gray-700');
-
-  const input = document.getElementById('myScoreInput');
-  if(document.activeElement !== input){
-    input.value = (scores[myPlayerName] != null) ? scores[myPlayerName] : '';
-  }
-}
-
-function updateMyIdName(){
-  if(locked){ alert('🔒 입력이 잠긴 상태입니다.'); showMyScoreBox(); return; }
-  if(!myPlayerName) return;
-  const idx = today.findIndex(p=>p.name===myPlayerName);
-  if(idx===-1) return;
-  const oldName = myPlayerName;
-  const newId = document.getElementById('myIdInput').value.trim();
-  const newName = document.getElementById('myNameInput').value.trim() || oldName;
-
-  if(newName !== oldName && today.some((p,pi)=> pi!==idx && p.name===newName)){
-    alert('이미 사용 중인 이름입니다.');
-    document.getElementById('myNameInput').value = oldName;
-    return;
-  }
-
-  today[idx].id = newId;
-  if(newName !== oldName){
-    today[idx].name = newName;
-    if(scores[oldName] != null){ scores[newName] = scores[oldName]; delete scores[oldName]; }
-    nearPins = nearPins.map(n => n===oldName ? newName : n);
-    luckyExcluded = luckyExcluded.map(n => n===oldName ? newName : n);
-    if(luckyWinners) luckyWinners = luckyWinners.map(n => n===oldName ? newName : n);
-    holeInOnes.forEach(h=>{ if(h.name===oldName) h.name = newName; });
-    myPlayerName = newName;
-    if(eventId) localStorage.setItem('golf_player_' + eventId, newName);
-  }
-
-  const midx = members.findIndex(raw => normalizeMember(raw).name === oldName);
-  if(midx !== -1){
-    const m = normalizeMember(members[midx]);
-    m.id = newId;
-    m.name = newName;
-    members[midx] = m;
-    pushClubState({ members });
-  }
-
-  pushState({ today, scores, nearPins, luckyExcluded, luckyWinners, holeInOnes });
-  renderMyPlayerSelect();
-  showMyScoreBox();
-}
-
-let myHandicapDebounce = null;
-function updateMyHandicap(val){
-  if(locked){ alert('🔒 입력이 잠긴 상태입니다.'); showMyScoreBox(); return; }
-  if(!myPlayerName) return;
-  const idx = today.findIndex(p=>p.name===myPlayerName);
-  if(idx===-1) return;
-  const v = parseFloat(val);
-  const magnitude = (isNaN(v) || v <= 0) ? 0 : Math.round(v*10)/10;
-  const sign = (today[idx].handicap < 0) ? -1 : 1;
-  today[idx].handicap = magnitude === 0 ? 0 : sign * magnitude;
-  clearTimeout(myHandicapDebounce);
-  todayPushPending = true;
-  myHandicapDebounce = setTimeout(()=>{
-    pushState({ today }).then(()=>{ todayPushPending = false; });
-    syncHandicapToMember(myPlayerName, today[idx].handicap);
-  }, 400);
-}
-
-function toggleMyHandicapSign(){
-  if(locked){ alert('🔒 입력이 잠긴 상태입니다.'); return; }
-  if(!myPlayerName) return;
-  const idx = today.findIndex(p=>p.name===myPlayerName);
-  if(idx===-1) return;
-  today[idx].handicap = Math.round((today[idx].handicap * -1) * 10) / 10;
-  todayPushPending = true;
-  pushState({ today }).then(()=>{ todayPushPending = false; });
-  syncHandicapToMember(myPlayerName, today[idx].handicap);
-  showMyScoreBox();
-}
-
-function updateMyScore(val){
-  if(locked){ alert('🔒 입력이 잠긴 상태입니다.'); return; }
-  if(!myPlayerName) return;
-  const v = parseScoreInput(val);
-  if(val === '' || v === null) delete scores[myPlayerName];
-  else scores[myPlayerName] = v;
-  if(scoreIsRaw[myPlayerName]) delete scoreIsRaw[myPlayerName];
-
-  const msgEl = document.getElementById('myScoreSavedMsg');
-  if(msgEl) msgEl.textContent = '저장 중...';
-
-  clearTimeout(scoreDebounce[myPlayerName]);
-  scorePushPending = true;
-  scoreDebounce[myPlayerName] = setTimeout(()=>{
-    pushState({ scores, scoreIsRaw }).then(()=>{
-      scorePushPending = false;
-      if(msgEl) msgEl.textContent = '✅ 저장되었습니다.';
-    });
-  }, 400);
-}
-
-let myGroupIndex = null;
-function renderMyGroupSelect(){
-  const sel = document.getElementById('myGroupSelect');
-  if(!sel) return;
-  if(!currentGroups || currentGroups.length===0){
-    sel.innerHTML = '<option value="">-- 아직 조편성 전입니다 --</option>';
-    return;
-  }
-  sel.innerHTML = '<option value="">-- 조 선택 --</option>' +
-    currentGroups.map((g,gi)=>`<option value="${gi}" ${myGroupIndex===gi?'selected':''}>${gi+1}조 (${g.map(p=>p.id||p.name).join(', ')})</option>`).join('');
-
-  const saved = eventId ? localStorage.getItem('golf_captain_group_' + eventId) : null;
-  if(myGroupIndex===null && saved!==null && currentGroups[parseInt(saved,10)]){
-    myGroupIndex = parseInt(saved,10);
-    sel.value = myGroupIndex;
-  }
-}
-
-function chooseMyGroup(val){
-  myGroupIndex = (val === '') ? null : parseInt(val,10);
-  if(myGroupIndex!==null && eventId) localStorage.setItem('golf_captain_group_' + eventId, myGroupIndex);
-  showGroupScoreList();
-}
-
-function showGroupScoreList(){
-  const box = document.getElementById('groupScoreList');
-  if(!box) return;
-  if(myGroupIndex===null || !currentGroups || !currentGroups[myGroupIndex]){
-    box.innerHTML = '';
-    return;
-  }
-  const group = currentGroups[myGroupIndex];
-
-  const active = document.activeElement;
-  const activeId = (active && active.id && active.id.startsWith('gsc-')) ? active.id : null;
-  const selStart = active ? active.selectionStart : null;
-  const selEnd = active ? active.selectionEnd : null;
-
-  box.innerHTML = group.map(p=>`
-    <div class="bg-white rounded-2xl p-4 shadow border-2 border-teal-200">
-      <p class="text-xl font-extrabold mb-2">${escapeHtml(p.id||p.name)}</p>
-
-      <label class="text-base text-gray-600 block mb-1">핸디캡</label>
-      <div class="flex items-center gap-2 mb-3">
-        <button type="button" onclick="toggleGroupMemberHandicapSign('${escapeAttr(p.name)}')"
-          class="w-11 h-11 flex-shrink-0 border-2 border-gray-300 rounded-lg text-xl font-bold ${p.handicap<0 ? 'bg-red-100 text-red-600 border-red-300' : 'text-gray-700'}">−</button>
-        <input id="ghc-${escapeAttr(p.name)}" type="text" inputmode="decimal" placeholder="0.0"
-          value="${Math.abs(p.handicap||0) || ''}"
-          oninput="updateGroupMemberHandicap('${escapeAttr(p.name)}', this.value)" onfocus="this.select()"
-          class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-3 py-2 text-lg text-right outline-none">
-      </div>
-
-      <label class="text-base text-gray-600 block mb-1">핸디반영 최종스코어</label>
-      <input id="gsc-${escapeAttr(p.name)}" type="text" inputmode="text" placeholder="예: 85 또는 +13"
-        value="${scores[p.name] != null ? scores[p.name] : ''}"
-        oninput="updateGroupMemberScore('${escapeAttr(p.name)}', this.value)" onfocus="this.select()"
-        class="w-full border-2 border-gray-300 rounded-xl px-3 py-4 text-2xl text-center outline-none focus:border-teal-500">
-    </div>`).join('') +
-    `<p id="groupScoreSavedMsg" class="text-sm text-green-600 text-center"></p>`;
-
-  if(activeId){
-    const el = document.getElementById(activeId);
-    if(el){ el.focus(); try{ el.setSelectionRange(selStart, selEnd); }catch(e){} }
-  }
-}
-
-let groupHandicapDebounce = {};
-function updateGroupMemberHandicap(name, val){
-  if(locked){ alert('🔒 입력이 잠긴 상태입니다.'); return; }
-  const idx = today.findIndex(p=>p.name===name);
-  if(idx===-1) return;
-  const v = parseFloat(val);
-  const magnitude = (isNaN(v) || v <= 0) ? 0 : Math.round(v*10)/10;
-  const sign = (today[idx].handicap < 0) ? -1 : 1;
-  today[idx].handicap = magnitude === 0 ? 0 : sign * magnitude;
-  clearTimeout(groupHandicapDebounce[name]);
-  todayPushPending = true;
-  groupHandicapDebounce[name] = setTimeout(()=>{
-    pushState({ today }).then(()=>{ todayPushPending = false; });
-    syncHandicapToMember(name, today[idx].handicap);
-  }, 400);
-}
-
-function toggleGroupMemberHandicapSign(name){
-  if(locked){ alert('🔒 입력이 잠긴 상태입니다.'); return; }
-  const idx = today.findIndex(p=>p.name===name);
-  if(idx===-1) return;
-  today[idx].handicap = Math.round((today[idx].handicap * -1) * 10) / 10;
-  todayPushPending = true;
-  pushState({ today }).then(()=>{ todayPushPending = false; });
-  syncHandicapToMember(name, today[idx].handicap);
-  showGroupScoreList();
-}
-
-function updateGroupMemberScore(name, val){
-  if(locked){ alert('🔒 입력이 잠긴 상태입니다.'); return; }
-  const v = parseScoreInput(val);
-  if(val === '' || v === null) delete scores[name];
-  else scores[name] = v;
-  if(scoreIsRaw[name]) delete scoreIsRaw[name];
-
-  const msgEl = document.getElementById('groupScoreSavedMsg');
-  if(msgEl) msgEl.textContent = '저장 중...';
-
-  clearTimeout(scoreDebounce[name]);
-  scorePushPending = true;
-  scoreDebounce[name] = setTimeout(()=>{
-    pushState({ scores, scoreIsRaw }).then(()=>{
-      scorePushPending = false;
-      if(msgEl) msgEl.textContent = '✅ 저장되었습니다.';
-    });
-  }, 400);
-}
-
-function updatePar3Count(val){
-  if(checkLocked()) return;
-  let n = parseInt(val, 10);
-  if(isNaN(n) || n < 0) n = 0;
-  if(n > 10) n = 10;
-  par3Count = n;
-  const arr = [];
-  for(let i=0;i<n;i++) arr.push(nearPins[i] || '');
-  nearPins = arr;
-  pushState({ par3Count, nearPins });
-  renderNearPinList();
-}
-
-function renderNearPinList(){
-  const box = document.getElementById('nearPinList');
-  if(!box) return;
-  if(par3Count === 0){
-    box.innerHTML = '<p class="text-gray-400 text-center py-2">파3 홀 개수를 입력해 주세요.</p>';
-    return;
-  }
-  if(today.length===0){
-    box.innerHTML = '<p class="text-gray-400 text-center py-2">참가자를 먼저 추가해 주세요.</p>';
-    return;
-  }
-  box.innerHTML = '';
-  for(let i=0;i<par3Count;i++){
-    const row = document.createElement('div');
-    row.className = 'flex items-center gap-2';
-    const sel = today.map(p=>`<option value="${escapeHtml(p.name)}" ${nearPins[i]===p.name?'selected':''}>${escapeHtml(p.id||p.name)}</option>`).join('');
-    row.innerHTML = `
-      <span class="text-base font-bold w-16">${i+1}번홀</span>
-      <select onchange="updateNearPin(${i}, this.value)" class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-2 py-2 text-lg outline-none">
-        <option value="">-- 선택 안함 --</option>
-        ${sel}
-      </select>`;
-    box.appendChild(row);
-  }
-}
-
-function updateNearPin(idx, name){
-  if(checkLocked()) return;
-  nearPins[idx] = name;
-  pushState({ nearPins });
-}
-
-function renderHoleInOneList(){
-  const box = document.getElementById('holeInOneList');
-  if(!box) return;
-
-  const active = document.activeElement;
-  const activeId = (active && active.id && active.id.startsWith('hio-')) ? active.id : null;
-  const selStart = active ? active.selectionStart : null;
-  const selEnd = active ? active.selectionEnd : null;
-
-  if(holeInOnes.length===0){
-    box.innerHTML = '<p class="text-gray-400 text-sm text-center py-2">등록된 홀인원이 없습니다.</p>';
-    return;
-  }
-  box.innerHTML = holeInOnes.map((h,i)=>`
-    <div class="flex items-center gap-2 bg-yellow-50 border-2 border-yellow-300 rounded-xl px-3 py-2">
-      <select onchange="updateHoleInOneName(${i}, this.value)" class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-2 py-2 text-lg outline-none">
-        <option value="">-- 이름 선택 --</option>
-        ${today.map(p=>`<option value="${escapeHtml(p.name)}" ${h.name===p.name?'selected':''}>${escapeHtml(p.id||p.name)}</option>`).join('')}
-      </select>
-      <input id="hio-prize-${i}" type="text" inputmode="numeric" pattern="[0-9]*" value="${h.prize || ''}" placeholder="상금"
-        oninput="updateHoleInOnePrize(${i}, this.value)" onfocus="this.select()"
-        class="w-24 border-2 border-gray-300 rounded-lg px-2 py-2 text-lg text-right outline-none">
-      <span class="text-sm text-gray-500">원</span>
-      <button onclick="removeHoleInOne(${i})" class="text-red-600 font-bold text-base bg-red-100 px-2 py-2 rounded-lg active:bg-red-200">삭제</button>
-    </div>`).join('');
-
-  if(activeId){
-    const el = document.getElementById(activeId);
-    if(el){ el.focus(); try{ el.setSelectionRange(selStart, selEnd); }catch(e){} }
-  }
-}
-
-function addHoleInOne(){
-  if(checkLocked()) return;
-  holeInOnes.push({ name: '', prize: 0 });
-  pushState({ holeInOnes });
-  renderHoleInOneList();
-}
-
-function updateHoleInOneName(i, val){
-  if(checkLocked()) return;
-  holeInOnes[i].name = val;
-  pushState({ holeInOnes });
-}
-
-let holeInOneDebounce = {};
-function updateHoleInOnePrize(i, val){
-  if(checkLocked()) return;
-  const v = parseInt(val, 10);
-  holeInOnes[i].prize = isNaN(v) ? 0 : v;
-  clearTimeout(holeInOneDebounce[i]);
-  holeInOnePushPending = true;
-  holeInOneDebounce[i] = setTimeout(()=>{
-    pushState({ holeInOnes }).then(()=>{ holeInOnePushPending = false; });
-  }, 400);
-}
-
-function removeHoleInOne(i){
-  if(checkLocked()) return;
-  holeInOnes.splice(i,1);
-  pushState({ holeInOnes });
-  renderHoleInOneList();
-}
-
-let groupSize = 4;
-function setGroupSize(n){
-  if(checkLocked()) return;
-  groupSize = n;
-  pushState({ groupSize: n });
-  renderGroupSizeButtons();
-}
-
-function renderGroupSizeButtons(){
-  [3,4,5].forEach(n=>{
-    const btn = document.getElementById('gs-' + n);
-    if(!btn) return;
-    if(n === groupSize){
-      btn.className = 'group-size-btn py-3 rounded-xl text-lg font-bold border-2 bg-blue-700 text-white border-blue-700';
-    } else {
-      btn.className = 'group-size-btn py-3 rounded-xl text-lg font-bold border-2 bg-white text-gray-700 border-gray-300';
+function applyHandicapPaste(){
+  const raw = document.getElementById('handicapPasteInput').value;
+  raw.split('\n').forEach(line=>{
+    const m = line.match(/^(.+?)\s+([+-]?\d+(?:\.\d+)?)\s*$/);
+    if(m){
+      const label = m[1].trim(), hc = parseFloat(m[2]);
+      const p = today.find(t=> (t.id && t.id===label) || t.name===label);
+      if(p) p.handicap = hc;
     }
   });
+  pushState({ today });
+  renderToday();
+  alert('반영 완료');
 }
 
-function computeGroupSizes(n, maxSize){
-  const numGroups = Math.max(1, Math.ceil(n / maxSize));
-  const base = Math.floor(n/numGroups);
-  const extra = n % numGroups;
-  const sizes = [];
-  for(let i=0;i<numGroups;i++) sizes.push(base + (i<extra?1:0));
-  return sizes;
+function applyScorePaste(){
+  const raw = document.getElementById('scorePasteInput').value;
+  raw.split('\n').forEach(line=>{
+    const m = line.match(/^(.+?)\s+([+-]?\d+(?:\.\d+)?)\s*$/);
+    if(m){
+      const label = m[1].trim(), sc = parseScoreInput(m[2]);
+      const p = today.find(t=> (t.id && t.id===label) || t.name===label);
+      if(p && sc !== null) scores[p.name] = sc;
+    }
+  });
+  pushState({ scores });
+  alert('반영 완료');
 }
 
-function zigzagAssign(participants, sizes){
-  const sorted = [...participants].sort((a,b)=> b.handicap - a.handicap);
-  const numGroups = sizes.length;
+function autoGroup(){
+  const numGroups = Math.max(1, Math.ceil(today.length / 4));
   const groups = Array.from({length:numGroups}, ()=>[]);
-  let idx = 0;
-  let forward = true;
-  while(idx < sorted.length){
-    const order = [...Array(numGroups).keys()];
-    if(!forward) order.reverse();
-    for(const gi of order){
-      if(idx >= sorted.length) break;
-      if(groups[gi].length < sizes[gi]){
-        groups[gi].push(sorted[idx]);
-        idx++;
-      }
-    }
-    forward = !forward;
-  }
-  return groups;
-}
-
-function hasRecentPair(recentPairs, name1, name2){
-  return recentPairs.has([name1, name2].sort().join('|'));
-}
-function groupAvgHandicap(g){
-  return g.reduce((s,p)=>s+p.handicap,0) / g.length;
-}
-function maxMinGap(groups){
-  const avgs = groups.map(groupAvgHandicap);
-  return Math.max(...avgs) - Math.min(...avgs);
-}
-function resolveParticipantName(label){
-  const p = today.find(t => (t.id && t.id === label) || t.name === label);
-  return p ? p.name : null;
-}
-function violatesHardPairs(g, hardPairs){
-  if(!hardPairs || hardPairs.length === 0) return false;
-  return hardPairs.some(([n1,n2]) => g.some(p=>p.name===n1) && g.some(p=>p.name===n2));
-}
-
-function balanceGroups(groups, targetGap, avoidSet, hardPairs){
-  let attempts = 0;
-  while(maxMinGap(groups) >= targetGap && attempts < 300){
-    attempts++;
-    const avgs = groups.map(groupAvgHandicap);
-    const maxIdx = avgs.indexOf(Math.max(...avgs));
-    const minIdx = avgs.indexOf(Math.min(...avgs));
-    if(maxIdx === minIdx) break;
-
-    let bestSwap = null, bestGap = maxMinGap(groups);
-    let bestSwapAllowingSoftViolation = null, bestGapAllowingSoftViolation = maxMinGap(groups);
-    for(let i=0;i<groups[maxIdx].length;i++){
-      for(let j=0;j<groups[minIdx].length;j++){
-        const a = groups[maxIdx][i], b = groups[minIdx][j];
-        groups[maxIdx][i] = b; groups[minIdx][j] = a;
-
-        const hardViolation = violatesHardPairs(groups[maxIdx], hardPairs) || violatesHardPairs(groups[minIdx], hardPairs);
-        if(!hardViolation){
-          const softViolation = avoidSet && (
-            groups[maxIdx].some((p,idx)=> idx!==i && hasRecentPair(avoidSet, b.name, p.name)) ||
-            groups[minIdx].some((p,idx)=> idx!==j && hasRecentPair(avoidSet, a.name, p.name))
-          );
-          const gap = maxMinGap(groups);
-          if(!softViolation && gap < bestGap){ bestGap = gap; bestSwap = {i,j}; }
-          if(gap < bestGapAllowingSoftViolation){ bestGapAllowingSoftViolation = gap; bestSwapAllowingSoftViolation = {i,j}; }
-        }
-        groups[maxIdx][i] = a; groups[minIdx][j] = b;
-      }
-    }
-    const chosen = bestSwap || bestSwapAllowingSoftViolation;
-    if(!chosen) break;
-    const a = groups[maxIdx][chosen.i], b = groups[minIdx][chosen.j];
-    groups[maxIdx][chosen.i] = b; groups[minIdx][chosen.j] = a;
-  }
-  return groups;
-}
-
-function enforceHardSeparation(groups, hardPairs){
-  if(!hardPairs || hardPairs.length === 0) return groups;
-  let attempts = 0;
-  while(attempts < hardPairs.length * 3){
-    attempts++;
-    const violatingPair = hardPairs.find(([n1,n2]) => groups.some(g => g.some(p=>p.name===n1) && g.some(p=>p.name===n2)));
-    if(!violatingPair) break;
-
-    const [name1, name2] = violatingPair;
-    const gi = groups.findIndex(g => g.some(p=>p.name===name1) && g.some(p=>p.name===name2));
-    const g = groups[gi];
-    const idx2 = g.findIndex(p=>p.name===name2);
-    const person2 = g[idx2];
-
-    let bestSwap = null, bestIncrease = Infinity;
-    const beforeGap = maxMinGap(groups);
-    for(let gj=0; gj<groups.length; gj++){
-      if(gj === gi) continue;
-      for(let k=0;k<groups[gj].length;k++){
-        const candidate = groups[gj][k];
-        if(candidate.name === name1) continue;
-        groups[gi][idx2] = candidate; groups[gj][k] = person2;
-        const stillOk = !violatesHardPairs(groups[gi], hardPairs) && !violatesHardPairs(groups[gj], hardPairs);
-        if(stillOk){
-          const increase = maxMinGap(groups) - beforeGap;
-          if(increase < bestIncrease){ bestIncrease = increase; bestSwap = {gj,k}; }
-        }
-        groups[gi][idx2] = person2; groups[gj][k] = candidate;
-      }
-    }
-    if(bestSwap){
-      const candidate = groups[bestSwap.gj][bestSwap.k];
-      groups[gi][idx2] = candidate;
-      groups[bestSwap.gj][bestSwap.k] = person2;
-    } else {
-      break;
-    }
-  }
-  return groups;
-}
-
-function avoidPairs(groups, avoidSet, hardPairs){
-  if(!avoidSet || avoidSet.size === 0) return groups;
-
-  function findViolations(){
-    const violations = [];
-    groups.forEach((g, gi)=>{
-      for(let i=0;i<g.length;i++){
-        for(let j=i+1;j<g.length;j++){
-          if(hasRecentPair(avoidSet, g[i].name, g[j].name)) violations.push({ gi, ai: i });
-        }
-      }
-    });
-    return violations;
-  }
-
-  let attempts = 0;
-  let violations = findViolations();
-  while(violations.length > 0 && attempts < 80){
-    attempts++;
-    const v = violations[0];
-    const g = groups[v.gi];
-    const personA = g[v.ai];
-    let swapped = false;
-
-    for(let gj=0; gj<groups.length && !swapped; gj++){
-      if(gj === v.gi) continue;
-      const otherGroup = groups[gj];
-      for(let k=0; k<otherGroup.length && !swapped; k++){
-        const candidate = otherGroup[k];
-        const gRestOk = g.every((p,idx)=> idx===v.ai || !hasRecentPair(avoidSet, candidate.name, p.name));
-        const otherRestOk = otherGroup.every((p,idx)=> idx===k || !hasRecentPair(avoidSet, personA.name, p.name));
-        if(!gRestOk || !otherRestOk) continue;
-
-        const testG = groups.map(x=>x.slice());
-        testG[v.gi][v.ai] = candidate; testG[gj][k] = personA;
-        if(violatesHardPairs(testG[v.gi], hardPairs) || violatesHardPairs(testG[gj], hardPairs)) continue;
-
-        groups[v.gi][v.ai] = candidate; groups[gj][k] = personA;
-        swapped = true;
-      }
-    }
-
-    if(!swapped) violations.shift();
-    violations = findViolations();
-  }
-  return groups;
-}
-
-async function autoGroup(){
-  if(checkLocked()) return;
-  const btn = document.getElementById('autoGroupBtn');
-  const msg = document.getElementById('autoGroupMsg');
-  const setMsg = (text, isError)=>{
-    if(!msg) return;
-    msg.textContent = text || '';
-    msg.className = 'text-sm mt-2 ' + (isError ? 'text-red-600 font-bold' : 'text-gray-500');
-  };
-  if(today.length < 3){
-    setMsg('최소 3명 이상의 참가자가 필요합니다.', true);
-    return;
-  }
-
-  if(btn){ btn.disabled = true; btn.textContent = '⏳ 조편성 중...'; btn.classList.add('opacity-60'); }
-  setMsg('기록을 확인하는 중...', false);
-
-  try{
-    let recentPairs = new Set();
-    try{
-      if(clubRef){
-        const snap = await clubRef.collection('events').orderBy('createdAt','desc').limit(6).get();
-        let checked = 0;
-        for(const doc of snap.docs){
-          if(doc.id === eventId) continue;
-          const data = doc.data();
-          if(data.groups){
-            data.groups.forEach(g=>{
-              const members = (g.members||g).map(p=>p.name);
-              for(let i=0;i<members.length;i++){
-                for(let j=i+1;j<members.length;j++){
-                  recentPairs.add([members[i], members[j]].sort().join('|'));
-                }
-              }
-            });
-          }
-          checked++;
-          if(checked >= 2) break;
-        }
-      }
-    }catch(err){ console.error(err); }
-
-    const hardPairsResolved = (forbiddenPairs || [])
-      .map(([n1,n2]) => [resolveParticipantName(n1) || n1, resolveParticipantName(n2) || n2])
-      .filter(([n1,n2]) => today.some(p=>p.name===n1) && today.some(p=>p.name===n2));
-    const softCenter = resolveParticipantName('칼이씀아');
-    const softOthers = ['밀리언송','강씨씨','채린공주','짱아샷','엔젤로사'].map(resolveParticipantName).filter(Boolean);
-    const avoidSet = new Set(recentPairs);
-    if(softCenter){
-      softOthers.forEach(n=>{
-        if(n && n !== softCenter) avoidSet.add([softCenter, n].sort().join('|'));
-      });
-    }
-
-    const TARGET_GAP = 0.5;
-    const sizes = computeGroupSizes(today.length, groupSize);
-    let groups = zigzagAssign(today, sizes);
-    groups = avoidPairs(groups, avoidSet, hardPairsResolved);
-    groups = balanceGroups(groups, TARGET_GAP, avoidSet, hardPairsResolved);
-    groups = enforceHardSeparation(groups, hardPairsResolved);
-    groups = balanceGroups(groups, TARGET_GAP, avoidSet, hardPairsResolved);
-    currentGroups = groups;
-
-    pushState({ groups: currentGroups.map(g => ({ members: g })) });
-    renderGroups();
-
-    const finalGap = maxMinGap(currentGroups).toFixed(1);
-    setMsg(`${sizes.length}개 조로 편성 완료! (평균 핸디 격차 ${finalGap})`, false);
-  } catch(err){
-    console.error(err);
-    setMsg('조편성 중 오류: ' + err.message, true);
-  } finally {
-    if(btn){ btn.disabled = false; btn.textContent = '🔀 조편성 시작'; btn.classList.remove('opacity-60'); }
-  }
-}
-
-function renderForbiddenPairsUI(){
-  const selA = document.getElementById('forbiddenSelectA');
-  const selB = document.getElementById('forbiddenSelectB');
-  const list = document.getElementById('forbiddenPairsList');
-  if(!selA || !selB || !list) return;
-
-  const sorted = [...today].sort((a,b)=> a.name.localeCompare(b.name, 'ko'));
-  const options = sorted.map(p=>`<option value="${escapeHtml(p.name)}">${escapeHtml(p.id||p.name)}</option>`).join('');
-  selA.innerHTML = options;
-  selB.innerHTML = options;
-
-  if(forbiddenPairs.length === 0){
-    list.innerHTML = '<p class="text-gray-400 text-center py-2 text-sm">등록된 금지 조합이 없습니다.</p>';
-  } else {
-    list.innerHTML = forbiddenPairs.map((pair, i)=>{
-      const label1 = displayLabel(pair[0]);
-      const label2 = displayLabel(pair[1]);
-      return `
-      <div class="flex justify-between items-center bg-red-50 border-2 border-red-200 rounded-lg px-3 py-2">
-        <span class="text-base font-bold">${escapeHtml(label1)} ↔ ${escapeHtml(label2)}</span>
-        <button onclick="removeForbiddenPair(${i})" class="text-red-600 font-bold text-sm bg-red-100 px-2 py-1 rounded-lg">삭제</button>
-      </div>`;
-    }).join('');
-  }
-}
-
-function addForbiddenPair(){
-  if(checkLocked()) return;
-  const selA = document.getElementById('forbiddenSelectA');
-  const selB = document.getElementById('forbiddenSelectB');
-  const a = selA.value, b = selB.value;
-  if(!a || !b){ alert('두 분을 모두 선택해 주세요.'); return; }
-  if(a === b){ alert('서로 다른 두 명을 선택해 주세요.'); return; }
-  const exists = forbiddenPairs.some(pair => (pair[0]===a && pair[1]===b) || (pair[0]===b && pair[1]===a));
-  if(exists){ alert('이미 등록된 조합입니다.'); return; }
-  forbiddenPairs.push([a, b]);
-  pushState({ forbiddenPairs });
-  renderForbiddenPairsUI();
-}
-
-function removeForbiddenPair(i){
-  if(checkLocked()) return;
-  forbiddenPairs.splice(i, 1);
-  pushState({ forbiddenPairs });
-  renderForbiddenPairsUI();
+  today.forEach((p, i)=> groups[i % numGroups].push(p));
+  currentGroups = groups;
+  pushState({ groups: groups.map(g=>({ members: g })) });
+  renderGroups();
 }
 
 function renderGroups(){
   const box = document.getElementById('groupResult');
-  if(!currentGroups){ box.innerHTML=''; return; }
-  const numGroups = currentGroups.length;
-  const isViewer = (userMode !== 'admin');
-  const dateStr = new Date().toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric' });
-  const groupSummaryLines = currentGroups.map((g, gi)=>{
-    const avg = (g.reduce((s,p)=>s+p.handicap,0)/g.length).toFixed(1);
-    const memberList = g.map(p=>`${p.id||p.name}(${p.handicap})`).join(', ');
-    return `  ${gi+1}조 (평균 핸디 ${avg}, ${g.length}명): ${memberList}`;
-  }).join('\n');
-  const groupSummaryText =
-`⛳ 일스클럽 쫄깃한판 조편성 결과 (${dateStr})
-------------------------------
-${groupSummaryLines}`;
-
-  box.innerHTML = (isViewer ? '' : `
-    <p class="text-sm text-gray-500 -mb-2">필요하면 참가자 옆 드롭다운으로 조를 직접 옮길 수 있습니다.</p>
-  `) + currentGroups.map((g, gi)=>{
-    const avg = (g.reduce((s,p)=>s+p.handicap,0)/g.length).toFixed(1);
-    return `
-    <div class="bg-white rounded-2xl p-4 shadow border-2 border-blue-300">
-      <div class="flex justify-between items-center mb-2">
-        <h3 class="text-xl font-extrabold text-blue-800">${gi+1}조 (${g.length}명)</h3>
-        ${isViewer ? '' : `<span class="text-base font-bold bg-blue-100 text-blue-800 px-3 py-1 rounded-lg">평균 핸디 ${avg}</span>`}
-      </div>
-      <div class="space-y-2">
-        ${g.map(p=>`
-          <div class="flex items-center justify-between gap-2 border-b border-gray-100 py-2">
-            <div class="flex-1 min-w-0">
-              <span class="text-lg font-bold">${escapeHtml(p.id||p.name)}</span>
-              ${isViewer ? '' : `<span class="text-gray-600 ml-2">${p.handicap}</span>`}
-            </div>
-            ${isViewer ? '' : `
-            <select onchange="moveMemberToGroup(${gi}, '${escapeAttr(p.name)}', parseInt(this.value,10))"
-              class="border-2 border-gray-300 rounded-lg px-2 py-1 text-base outline-none">
-              ${Array.from({length:numGroups}, (_,ti)=>`<option value="${ti}" ${ti===gi?'selected':''}>${ti+1}조로</option>`).join('')}
-            </select>`}
-          </div>`).join('')}
-      </div>
-    </div>`;
-  }).join('') + `
-    <div id="groupImageCapture" class="bg-white rounded-2xl p-5 shadow border-2 border-blue-300">
-      <h3 class="text-xl font-extrabold text-center mb-1">⛳ 일스클럽 쫄깃한판</h3>
-      <p class="text-base text-gray-500 text-center mb-4">조편성 결과 · ${dateStr}</p>
-      <div class="space-y-3">
-        ${currentGroups.map((g, gi)=>{
-          const avg = (g.reduce((s,p)=>s+p.handicap,0)/g.length).toFixed(1);
-          return `
-          <div class="border-2 border-blue-200 rounded-xl p-3">
-            <div class="flex justify-between items-center mb-2">
-              <span class="text-lg font-extrabold text-blue-800">${gi+1}조</span>
-              <span class="text-sm font-bold bg-blue-100 text-blue-800 px-2 py-1 rounded-lg">평균 핸디 ${avg}</span>
-            </div>
-            <div class="grid grid-cols-2 gap-x-3 gap-y-1">
-              ${g.map(p=>`<div class="text-base"><b>${escapeHtml(p.id||p.name)}</b> <span class="text-gray-500">(${p.handicap})</span></div>`).join('')}
-            </div>
-          </div>`;
-        }).join('')}
-      </div>
-    </div>
-    <button onclick="downloadElementAsImage('groupImageCapture', '조편성결과_${dateStr.replace(/\s/g,'')}.png', this)" class="btn-primary w-full bg-blue-700 text-white py-4 rounded-xl active:bg-blue-900">
-      🖼️ 조편성 결과 이미지로 저장
-    </button>
-    <div class="bg-gray-900 rounded-2xl p-4 shadow">
-      <p class="text-white text-lg font-extrabold mb-2">📋 조편성 결과 공유용 텍스트</p>
-      <pre id="groupResultText" class="bg-white text-gray-900 rounded-xl p-4 text-base leading-relaxed whitespace-pre-wrap font-mono overflow-x-auto">${groupSummaryText}</pre>
-      <button onclick="copyGroupResult()" class="btn-primary w-full mt-3 bg-yellow-400 text-gray-900 py-4 rounded-xl active:bg-yellow-500">
-        📋 결과 복사하기
-      </button>
-    </div>`;
-}
-
-async function copyGroupResult(){
-  const text = document.getElementById('groupResultText').innerText;
-  try{
-    await navigator.clipboard.writeText(text);
-    alert('조편성 결과가 복사되었습니다!');
-  }catch(e){
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    alert('조편성 결과가 복사되었습니다!');
-  }
-}
-
-function moveMemberToGroup(fromIdx, name, toIdx){
-  if(checkLocked()) return;
-  if(!currentGroups || fromIdx === toIdx) return;
-  const fromGroup = currentGroups[fromIdx];
-  if(fromGroup.length <= 1){
-    alert('이동할 수 없습니다.');
-    renderGroups();
-    return;
-  }
-  const pos = fromGroup.findIndex(p=>p.name===name);
-  if(pos === -1) return;
-  const [moved] = fromGroup.splice(pos, 1);
-  currentGroups[toIdx].push(moved);
-  pushState({ groups: currentGroups.map(g => ({ members: g })) });
-  renderGroups();
-}
-
-let lastEligibleForLucky = [];
-let lastLuckyPoolAmount = 0;
-
-function toggleGroupPrizeEdit(){
-  groupPrizeEditMode = !groupPrizeEditMode;
-  computeMoney();
-}
-
-let groupPrizeOverrideDebounce = {};
-function updateGroupPrizeOverride(groupIndex, val){
-  if(checkLocked()) return;
-  const v = parseInt(val, 10);
-  groupPrizeOverride[groupIndex] = isNaN(v) ? 0 : v;
-  clearTimeout(groupPrizeOverrideDebounce[groupIndex]);
-  groupPrizeOverrideDebounce[groupIndex] = setTimeout(()=>{
-    pushState({ groupPrizeOverride });
-    computeMoney();
-  }, 400);
-}
-
-function clearGroupPrizeOverride(groupIndex){
-  if(checkLocked()) return;
-  delete groupPrizeOverride[groupIndex];
-  pushState({ groupPrizeOverride });
-  computeMoney();
-}
-
-function resetAllGroupPrizeOverrides(){
-  if(checkLocked()) return;
-  if(!confirm('모두 자동으로 되돌릴까요?')) return;
-  groupPrizeOverride = {};
-  pushState({ groupPrizeOverride });
-  computeMoney();
-}
-
-function updateLuckyCount(val){
-  if(checkLocked()) return;
-  let n = parseInt(val, 10);
-  if(isNaN(n) || n < 1) n = 1;
-  if(n > 20) n = 20;
-  luckyCount = n;
-  pushState({ luckyCount: n });
-}
-
-function openLuckyRoulette(){
-  if(checkLocked()) return;
-  const pool = lastEligibleForLucky;
-  if(pool.length === 0){
-    alert('대상자가 없습니다.');
-    return;
-  }
-  const cnt = Math.min(luckyCount || 2, pool.length);
-  const modal = document.getElementById('luckyRouletteModal');
-  const display = document.getElementById('rouletteDisplay');
-  const resultBox = document.getElementById('rouletteResult');
-  if(!modal || !display || !resultBox) return;
-  resultBox.classList.add('hidden');
-  modal.classList.remove('hidden');
-  display.textContent = '?';
-
-  const labels = pool.map(name => String(displayLabel(name) || name).slice(0,4));
-  const spinInterval = setInterval(()=>{
-    display.textContent = labels[Math.floor(Math.random()*labels.length)];
-  }, 80);
-
-  setTimeout(()=>{
-    clearInterval(spinInterval);
-    const shuffled = [...pool];
-    for(let i=shuffled.length-1;i>0;i--){
-      const j = Math.floor(Math.random()*(i+1));
-      [shuffled[i],shuffled[j]] = [shuffled[j],shuffled[i]];
-    }
-    const winners = shuffled.slice(0, cnt);
-    luckyWinners = winners;
-    pushState({ luckyWinners: winners });
-
-    display.textContent = '🎉🎊✨';
-    resultBox.classList.remove('hidden');
-    document.getElementById('rouletteWinnersList').innerHTML = winners.map(name=>
-      `<p class="text-xl font-extrabold text-purple-800 leading-relaxed">착한일 많이 하셨나봐요~<br>${escapeHtml(displayLabel(name))}님! 🎊</p>`
-    ).join('');
-
-    computeMoney();
-  }, 5000);
-}
-
-function closeLuckyRoulette(){
-  const modal = document.getElementById('luckyRouletteModal');
-  if(modal) modal.classList.add('hidden');
-}
-
-function renderLockBar(){
-  const statusText = document.getElementById('lockStatusText');
-  const btn = document.getElementById('lockActionBtn');
-  if(!statusText || !btn) return;
-  if(locked){
-    statusText.textContent = '🔒 입력완료 (수정 잠금됨)';
-    btn.textContent = '🔓 수정하기';
-    btn.onclick = unlockEvent;
-  } else {
-    statusText.textContent = '✏️ 입력 가능 상태';
-    btn.textContent = '✅ 입력완료';
-    btn.onclick = finalizeEvent;
-  }
-}
-
-function finalizeEvent(){
-  if(!confirm('입력을 완료하시겠습니까?')) return;
-  let pin = prompt('숫자 4자리의 비밀번호를 지정해 주세요.');
-  if(pin === null) return;
-  pin = pin.trim();
-  if(!/^\d{4}$/.test(pin)){ alert('숫자 4자리로 입력해 주세요.'); return; }
-  locked = true;
-  lockPin = pin;
-  pushState({ locked: true, lockPin: pin });
-  renderLockBar();
-  alert('저장되었습니다.');
-}
-
-function unlockEvent(){
-  const pw = prompt('비밀번호를 입력해 주세요.');
-  if(pw === null) return;
-  if(pw !== lockPin && pw !== '2020'){ alert('비밀번호가 일치하지 않습니다.'); return; }
-  locked = false;
-  pushState({ locked: false });
-  renderLockBar();
-  alert('수정 잠금이 해제되었습니다.');
-}
-
-function checkLocked(){
-  if(userMode !== 'admin'){ alert('총무님께 요청해 주세요.'); return true; }
-  if(locked){ alert('🔒 입력완료 상태입니다.'); return true; }
-  return false;
-}
-
-function escapeAttr(str){ return String(str).replace(/'/g, "\\'"); }
-
-function computeWinners(){
-  const netScore = p => {
-    if(scores[p.name] == null) return null;
-    const h = p.handicap || 0;
-    if(scoreIsRaw[p.name]) return h > 0 ? scores[p.name] - h : scores[p.name];
-    if(h < 0) return scores[p.name] + h;
-    return scores[p.name];
-  };
-
-  const ranked = today.filter(p => scores[p.name] != null)
-    .map(p => ({ name: p.name, id: p.id, gross: scores[p.name], handicap: p.handicap, net: netScore(p) }))
-    .sort((a,b)=> a.net - b.net);
-  const overall = ranked.slice(0, prizeRules.overallPlaces || 3);
-
-  const holeInOneAmountByGroup = {};
-  (holeInOnes || []).forEach(h=>{
-    if(!h.name || !currentGroups) return;
-    currentGroups.forEach((g, gi)=>{
-      if(g.find(p=>p.name===h.name)){
-        holeInOneAmountByGroup[gi] = (holeInOneAmountByGroup[gi] || 0) + (h.prize || 0);
-      }
-    });
-  });
-
-  const allGroupsInfo = (currentGroups || []).map((g, gi)=>{
-    const scored = g.filter(p => scores[p.name] != null);
-    const avgNet = scored.length ? scored.reduce((s,p)=> s + netScore(p), 0) / scored.length : null;
-    const memberDetails = scored.map(p => ({ name: p.name, id: p.id, gross: scores[p.name], handicap: p.handicap, net: netScore(p) }));
-    return { groupIndex: gi, members: g, memberDetails, avgNet, scoredCount: scored.length, totalCount: g.length, hio: holeInOneAmountByGroup[gi] || 0 };
-  }).filter(x => x.avgNet != null || x.hio > 0);
-
-  const hioGroups = allGroupsInfo.filter(x => x.hio > 0).sort((a,b)=> b.hio - a.hio);
-  const normalGroups = allGroupsInfo.filter(x => x.hio === 0).sort((a,b)=> a.avgNet - b.avgNet);
-  const groupRanking = [...hioGroups, ...normalGroups];
-  const nearPinsList = (nearPins || []).filter(n => n);
-
-  return { overall, groupRanking, nearPins: nearPinsList, fullRanking: ranked };
-}
-
-function renderPrizeRulesForm(){
-  const box = document.getElementById('prizeRulesForm');
-  if(!box) return;
-
-  const active = document.activeElement;
-  const activeId = (active && active.id && active.id.startsWith('pr-')) ? active.id : null;
-  const selStart = active ? active.selectionStart : null;
-  const selEnd = active ? active.selectionEnd : null;
-
-  const pctSum = (prizeRules.overallPct||0) + (prizeRules.groupPct||0) + (prizeRules.eventPct||0);
-  const overallSplit = prizeRules.overallSplit || [];
-  const overallSplitSum = overallSplit.reduce((a,b)=>a+(b||0),0);
-  const groupSplit = prizeRules.groupSplit || [60,40];
-  const groupSplitSum = groupSplit.reduce((a,b)=>a+(b||0),0);
-  const evSplit = prizeRules.eventSplit || {nearPin:50, lucky:50};
-  const evSplitSum = (evSplit.nearPin||0) + (evSplit.lucky||0);
-  const numGroups = currentGroups ? currentGroups.length : 0;
-
-  box.innerHTML = `
-    <p class="text-sm text-gray-500 mb-2">참가비 총액을 아래 세 항목으로 나눕니다.</p>
-    <div class="grid grid-cols-3 gap-2 mb-1">
-      <div>
-        <label class="text-sm text-gray-600 block mb-1">개인전</label>
-        <div class="flex items-center border-2 border-gray-300 rounded-lg">
-          <input id="pr-overallPct" type="text" inputmode="numeric" pattern="[0-9]*" value="${prizeRules.overallPct}"
-            onfocus="this.select()"
-            oninput="updatePct('overallPct', this.value)"
-            class="w-full min-w-0 px-2 py-2 text-lg text-right outline-none">
-          <span class="pr-2 text-gray-500">%</span>
-        </div>
-      </div>
-      <div>
-        <label class="text-sm text-gray-600 block mb-1">조별</label>
-        <div class="flex items-center border-2 border-gray-300 rounded-lg">
-          <input id="pr-groupPct" type="text" inputmode="numeric" pattern="[0-9]*" value="${prizeRules.groupPct}"
-            onfocus="this.select()"
-            oninput="updatePct('groupPct', this.value)"
-            class="w-full min-w-0 px-2 py-2 text-lg text-right outline-none">
-          <span class="pr-2 text-gray-500">%</span>
-        </div>
-      </div>
-      <div>
-        <label class="text-sm text-gray-600 block mb-1">니어핀+행운상</label>
-        <div class="flex items-center border-2 border-gray-300 rounded-lg">
-          <input id="pr-eventPct" type="text" inputmode="numeric" pattern="[0-9]*" value="${prizeRules.eventPct}"
-            onfocus="this.select()"
-            oninput="updatePct('eventPct', this.value)"
-            class="w-full min-w-0 px-2 py-2 text-lg text-right outline-none">
-          <span class="pr-2 text-gray-500">%</span>
-        </div>
-      </div>
-    </div>
-    <p id="pctSumIndicator" class="text-sm mb-4 ${pctSum===100 ? 'text-green-600' : 'text-red-600 font-bold'}">합계: ${pctSum}% ${pctSum===100 ? '✓' : ''}</p>
-
-    ${prizeRules.overallPct > 0 ? `
-    <div class="border-t pt-3 mb-3">
-      <p class="text-base font-bold mb-1">👤 개인전 (핸디캡 반영)</p>
-      <div class="flex items-center gap-2 mb-2">
-        <label class="text-base whitespace-nowrap">포상자 수</label>
-        <input id="pr-overallPlaces" type="text" inputmode="numeric" pattern="[0-9]*" value="${prizeRules.overallPlaces}"
-          onfocus="this.select()" oninput="updateOverallPlaces(this.value)"
-          class="w-16 border-2 border-gray-300 rounded-lg px-2 py-1 text-lg text-center outline-none">
-        <span class="text-base">명</span>
-      </div>
-      <div class="space-y-1">
-        ${overallSplit.map((v,i)=>`
-          <div class="flex items-center gap-2">
-            <span class="text-sm text-gray-600 w-10">${i+1}위</span>
-            <input id="pr-overallSplit-${i}" type="text" inputmode="numeric" pattern="[0-9]*" value="${v}"
-              onfocus="this.select()" oninput="updateOverallSplit(${i}, this.value)"
-              class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-2 py-1 text-lg text-right outline-none">
-            <span class="text-sm text-gray-500">%</span>
-          </div>`).join('')}
-      </div>
-      <p class="text-sm mt-1 ${overallSplitSum===100 ? 'text-green-600' : 'text-red-600 font-bold'}">합계: ${overallSplitSum}%</p>
-    </div>` : ''}
-
-    ${prizeRules.groupPct > 0 ? `
-    <div class="border-t pt-3 mb-3">
-      <p class="text-base font-bold mb-1">👥 조별 경쟁 (조 vs 조)</p>
-      <div class="flex items-center gap-2 mb-2">
-        <label class="text-base whitespace-nowrap">포상 조 수</label>
-        <input id="pr-groupPlaces" type="text" inputmode="numeric" pattern="[0-9]*" value="${prizeRules.groupPlaces}"
-          onfocus="this.select()" oninput="updateGroupPlaces(this.value)"
-          class="w-16 border-2 border-gray-300 rounded-lg px-2 py-1 text-lg text-center outline-none">
-        <span class="text-base">개 조</span>
-      </div>
-      <div class="space-y-1">
-        ${groupSplit.map((v,i)=>`
-          <div class="flex items-center gap-2">
-            <span class="text-sm text-gray-600 w-10">${i+1}위조</span>
-            <input id="pr-groupSplit-${i}" type="text" inputmode="numeric" pattern="[0-9]*" value="${v}"
-              onfocus="this.select()" oninput="updateGroupSplit(${i}, this.value)"
-              class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-2 py-1 text-lg text-right outline-none">
-            <span class="text-sm text-gray-500">%</span>
-          </div>`).join('')}
-      </div>
-      <p class="text-sm mt-1 ${groupSplitSum===100 ? 'text-green-600' : 'text-red-600 font-bold'}">합계: ${groupSplitSum}%</p>
-    </div>` : ''}
-
-    ${prizeRules.eventPct > 0 ? `
-    <div class="border-t pt-3">
-      <p class="text-base font-bold mb-2">🎯 니어핀 / 🍀 행운상 비율</p>
-      <div class="flex items-center gap-2 mb-1">
-        <span class="text-sm text-gray-600 w-16">니어핀</span>
-        <input id="pr-eventSplit-nearPin" type="text" inputmode="numeric" pattern="[0-9]*" value="${evSplit.nearPin}"
-          onfocus="this.select()" oninput="updateEventSplit('nearPin', this.value)"
-          class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-2 py-1 text-lg text-right outline-none">
-        <span class="text-sm text-gray-500">%</span>
-      </div>
-      <div class="flex items-center gap-2">
-        <span class="text-sm text-gray-600 w-16">행운상</span>
-        <input id="pr-eventSplit-lucky" type="text" inputmode="numeric" pattern="[0-9]*" value="${evSplit.lucky}"
-          onfocus="this.select()" oninput="updateEventSplit('lucky', this.value)"
-          class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-2 py-1 text-lg text-right outline-none">
-        <span class="text-sm text-gray-500">%</span>
-      </div>
-      <p class="text-sm mt-1 ${evSplitSum===100 ? 'text-green-600' : 'text-red-600 font-bold'}">합계: ${evSplitSum}%</p>
-    </div>` : ''}
-  `;
-
-  if(activeId){
-    const el = document.getElementById(activeId);
-    if(el){ el.focus(); try{ el.setSelectionRange(selStart, selEnd); }catch(e){} }
-  }
-}
-
-let prizeRulesDebounce = null;
-function pushPrizeRules(){
-  groupPrizeOverride = {};
-  clearTimeout(prizeRulesDebounce);
-  prizeRulesDebounce = setTimeout(()=> pushState({ prizeRules, groupPrizeOverride }), 400);
-  computeMoney();
-}
-
-function updatePct(field, val){
-  if(checkLocked()) return;
-  const v = parseInt(val, 10);
-  prizeRules[field] = isNaN(v) ? 0 : v;
-  renderPrizeRulesForm();
-  pushPrizeRules();
-}
-
-function updateOverallPlaces(val){
-  if(checkLocked()) return;
-  let n = parseInt(val, 10);
-  if(isNaN(n) || n < 1) n = 1;
-  if(n > 10) n = 10;
-  prizeRules.overallPlaces = n;
-  const cur = prizeRules.overallSplit || [];
-  const arr = [];
-  for(let i=0;i<n;i++) arr.push(cur[i] != null ? cur[i] : 0);
-  prizeRules.overallSplit = arr;
-  renderPrizeRulesForm();
-  pushPrizeRules();
-}
-
-function updateOverallSplit(idx, val){
-  if(checkLocked()) return;
-  const v = parseInt(val, 10);
-  prizeRules.overallSplit[idx] = isNaN(v) ? 0 : v;
-  renderPrizeRulesForm();
-  pushPrizeRules();
-}
-
-function updateGroupPlaces(val){
-  if(checkLocked()) return;
-  let n = parseInt(val, 10);
-  if(isNaN(n) || n < 1) n = 1;
-  if(n > 10) n = 10;
-  prizeRules.groupPlaces = n;
-  const cur = prizeRules.groupSplit || [];
-  const arr = [];
-  for(let i=0;i<n;i++) arr.push(cur[i] != null ? cur[i] : 0);
-  prizeRules.groupSplit = arr;
-  renderPrizeRulesForm();
-  pushPrizeRules();
-}
-
-function updateGroupSplit(idx, val){
-  if(checkLocked()) return;
-  const v = parseInt(val, 10);
-  prizeRules.groupSplit[idx] = isNaN(v) ? 0 : v;
-  renderPrizeRulesForm();
-  pushPrizeRules();
-}
-
-function updateEventSplit(key, val){
-  if(checkLocked()) return;
-  const v = parseInt(val, 10);
-  if(!prizeRules.eventSplit) prizeRules.eventSplit = {nearPin:50, lucky:50};
-  prizeRules.eventSplit[key] = isNaN(v) ? 0 : v;
-  renderPrizeRulesForm();
-  pushPrizeRules();
-}
-
-function handicapBasisText(gross, handicap, isRaw){
-  const h = handicap || 0;
-  let net;
-  if(isRaw) net = h > 0 ? gross - h : gross;
-  else net = h < 0 ? gross + h : gross;
-  net = Math.round(net * 10) / 10;
-  const applied = Math.round((gross - net) * 10) / 10;
-  const grossStr = Number.isInteger(gross) ? `${gross}` : gross.toFixed(1);
-  const appliedStr = Number.isInteger(applied) ? `${applied}` : applied.toFixed(1);
-  const netStr = Number.isInteger(net) ? `${net}` : net.toFixed(1);
-  return `${grossStr} - ${appliedStr} = ${netStr}`;
+  if(!currentGroups){ box.innerHTML = ''; return; }
+  box.innerHTML = currentGroups.map((g, gi)=>`
+    <div class="bg-white p-4 rounded-xl border mb-2">
+      <h3 class="font-bold text-blue-700">${gi+1}조</h3>
+      <div>${g.map(p=>p.id||p.name).join(', ')}</div>
+    </div>`).join('');
 }
 
 function computeMoney(){
-  const n = today.length;
   const box = document.getElementById('moneyResult');
-  if(n===0){
-    box.innerHTML = '<p class="text-center text-gray-400 py-6">참가자를 먼저 추가해 주세요.</p>';
-    return;
-  }
-  const totalPot = n * feePerPerson;
-
-  let overallPrize = roundTo1000(totalPot * (prizeRules.overallPct/100));
-  let groupPrizeTotal = roundTo1000(totalPot * (prizeRules.groupPct/100));
-  if(overallPrize + groupPrizeTotal > totalPot){
-    const scale = totalPot / (overallPrize + groupPrizeTotal);
-    overallPrize = roundTo1000(overallPrize * scale);
-    groupPrizeTotal = totalPot - overallPrize;
-  }
-  const eventPrize = Math.max(0, totalPot - overallPrize - groupPrizeTotal);
-  const evSplit = prizeRules.eventSplit || {nearPin:50, lucky:50};
-  const nearPinTotal = roundTo1000(eventPrize * ((evSplit.nearPin||0)/100));
-
-  const numGroups = currentGroups ? currentGroups.length : 0;
-  const validNearPinHoles = (nearPins||[]).filter(x=>x).length;
-  const nearPinPerHole = validNearPinHoles>0 ? Math.floor(nearPinTotal / validNearPinHoles / 1000)*1000 : 0;
-  const actualNearPinSum = nearPinPerHole * validNearPinHoles;
-
-  const winners = computeWinners();
-  const overallSplit = prizeRules.overallSplit || [50,30,20];
-  const gSplit = prizeRules.groupSplit || [60,40];
-  const groupPlaces = prizeRules.groupPlaces || 2;
-
-  const showOverall = prizeRules.overallPct > 0;
-  const showGroup = prizeRules.groupPct > 0;
-  const showNearPin = prizeRules.eventPct > 0;
-
-  const dateStr = new Date().toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric' });
-
-  const memberPrize = {};
-  today.forEach(p=> memberPrize[p.name] = { overall:0, group:0, nearPin:0, lucky:0 });
-
-  let actualOverallSum = 0;
-  const overallLines = winners.overall.map((w,i)=>{
-    let amt = roundTo1000(overallPrize * ((overallSplit[i]||0)/100));
-    if(actualOverallSum + amt > overallPrize) amt = Math.max(0, overallPrize - actualOverallSum);
-    actualOverallSum += amt;
-    if(memberPrize[w.name]) memberPrize[w.name].overall += amt;
-    return `  ${i+1}위 ${w.id||w.name} ${formatScore(w.net)}: ${amt.toLocaleString()}원`;
-  });
-
-  const fullRankingLines = winners.fullRanking.map((w,i)=>
-    `  ${i+1}. ${w.id||w.name} — ${formatScore(w.net)} [${handicapBasisText(w.gross, w.handicap, scoreIsRaw[w.name])}]`
-  );
-
-  const rawRankingLines = [...winners.fullRanking].sort((a,b)=>a.gross-b.gross).map((w,i)=>
-    `  ${i+1}. ${w.id||w.name} — ${formatScore(w.gross)}`
-  );
-
-  const winningGroupsList = winners.groupRanking.slice(0, groupPlaces);
-  const totalWeightedUnits = winningGroupsList.reduce((s,gr,i)=> s + (gSplit[i]||0) * gr.members.length, 0);
-  const valuePerUnit = totalWeightedUnits > 0 ? groupPrizeTotal / totalWeightedUnits : 0;
-
-  let actualGroupSum = 0;
-  let prevPerPerson = Infinity;
-  let prevTotal = Infinity;
-  const groupPrizeByGroupIdx = {};
-  const groupRankLines = winners.groupRanking.map((gr, i)=>{
-    const inMoney = i < groupPlaces;
-    let perPerson = 0;
-    let isOverridden = false;
-    if(inMoney && gr.members.length>0){
-      const overrideVal = groupPrizeOverride[gr.groupIndex];
-      if(overrideVal != null){
-        perPerson = overrideVal;
-        isOverridden = true;
-      } else {
-        const flatAmt = groupPrizeTotal * ((gSplit[i]||0)/100);
-        const weightedAmt = (gSplit[i]||0) * valuePerUnit * gr.members.length;
-        const blendedAmt = (flatAmt + weightedAmt) / 2;
-        perPerson = roundTo1000(blendedAmt / gr.members.length);
-        if(perPerson > prevPerPerson) perPerson = prevPerPerson;
-      }
-    }
-    let actualAmt = perPerson * gr.members.length;
-    if(inMoney && !isOverridden && actualAmt > prevTotal){
-      perPerson = gr.members.length>0 ? Math.floor(prevTotal/gr.members.length/1000)*1000 : 0;
-      actualAmt = perPerson * gr.members.length;
-    }
-    if(inMoney && !isOverridden && actualGroupSum + actualAmt > groupPrizeTotal){
-      const remaining = Math.max(0, groupPrizeTotal - actualGroupSum);
-      perPerson = gr.members.length>0 ? Math.floor(remaining/gr.members.length/1000)*1000 : 0;
-      actualAmt = perPerson * gr.members.length;
-    }
-    if(inMoney){
-      actualGroupSum += actualAmt;
-      prevPerPerson = perPerson;
-      prevTotal = actualAmt;
-      groupPrizeByGroupIdx[gr.groupIndex] = { rank: i+1, amt: actualAmt, perPerson, overridden: isOverridden };
-      gr.members.forEach(p=>{
-        if(memberPrize[p.name]) memberPrize[p.name].group += perPerson;
-      });
-    }
-    const basisText = gr.memberDetails && gr.memberDetails.length
-      ? `\n      근거: ${gr.memberDetails.map(m=>`${m.id\vert{}\vert{}m.name}${formatScore(m.net)}`).join(', ')}`
-      : '';
-    return `  ${i+1}위조: ${gr.groupIndex+1}조 (평균 ${gr.avgNet!=null ? formatScoreAvg(gr.avgNet) : '스코어 미입력'})`
-      + (inMoney && shareOptions.money ? ` → 조 상금 ${(perPerson*gr.members.length).toLocaleString()}원 (1인당 ${perPerson.toLocaleString()}원)` : '')
-      + basisText;
-  });
-
-  const groupCompositionLines = currentGroups ? currentGroups.map((g, gi)=>{
-    const avgHc = (g.reduce((s,p)=>s+p.handicap,0)/g.length).toFixed(1);
-    const memberList = g.map(p=>`${p.id||p.name}(${p.handicap})`).join(', ');
-    return `  ${gi+1}조 (평균 핸디 ${avgHc}): ${memberList}`;
-  }) : [];
-
-  const nearPinLines = (nearPins||[]).map((name, i)=>{
-    if(!name) return `  ${i+1}번홀: (미배정)`;
-    if(memberPrize[name]) memberPrize[name].nearPin += nearPinPerHole;
-    return `  ${i+1}번홀 니어핀: ${displayLabel(name)} → ${nearPinPerHole.toLocaleString()}원`;
-  });
-
-  let holeInOneTotal = 0;
-  const holeInOneLines = (holeInOnes||[]).filter(h=>h.name).map(h=>{
-    holeInOneTotal += (h.prize||0);
-    return `  🕳️ ${displayLabel(h.name)} → ${(h.prize||0).toLocaleString()}원`;
-  });
-
-  const luckyPoolAmount = Math.max(0, totalPot - actualOverallSum - actualGroupSum - actualNearPinSum);
-  const overBudget = (actualOverallSum + actualGroupSum + actualNearPinSum) > totalPot;
-  const overBudgetAmount = overBudget ? (actualOverallSum + actualGroupSum + actualNearPinSum - totalPot) : 0;
-  const eligibleForLucky = today
-    .filter(p=>{
-      const m = memberPrize[p.name];
-      return (m.overall + m.group + m.nearPin) === 0;
-    })
-    .map(p=>p.name);
-
-  lastEligibleForLucky = eligibleForLucky;
-  lastLuckyPoolAmount = luckyPoolAmount;
-
-  let luckyEachMap = {};
-  if(luckyWinners && luckyWinners.length>0 && luckyPoolAmount>0){
-    const cnt = luckyWinners.length;
-    const base = roundTo1000(luckyPoolAmount / cnt);
-    let assigned = 0;
-    luckyWinners.forEach((name, idx)=>{
-      const amt = (idx === cnt-1) ? (luckyPoolAmount - assigned) : base;
-      if(idx !== cnt-1) assigned += amt;
-      luckyEachMap[name] = amt;
-      if(memberPrize[name]) memberPrize[name].lucky += amt;
-    });
-  }
-
-  const memberRows = today.map(p=>{
-    const m = memberPrize[p.name];
-    const total = m.overall + m.group + m.nearPin + m.lucky;
-    return { name: p.name, id: p.id, ...m, total };
-  }).sort((a,b)=> b.total - a.total);
-
-  const memberTableText = memberRows.map(r=>
-    `  ${r.id||r.name}: 총 ${r.total.toLocaleString()}원  (개인전 ${r.overall.toLocaleString()} · 조별 ${r.group.toLocaleString()} · 니어핀 ${r.nearPin.toLocaleString()} · 행운상 ${r.lucky.toLocaleString()})`
-  ).join('\n');
-
-  const luckyText = (luckyWinners && luckyWinners.length>0)
-    ? luckyWinners.map(name => `${displayLabel(name)} ${(luckyEachMap[name]||0).toLocaleString()}원`).join(', ')
-    : '(미추첨)';
-
-  const shareText =
-`⛳ 일스클럽 쫄깃한판 결과 (${dateStr})
-------------------------------
-참가 인원: ${n}명${shareOptions.money ? `
-참가비: 1인 ${feePerPerson.toLocaleString()}원 × ${n}명 = ${totalPot.toLocaleString()}원` : ''}
-------------------------------
-[개인 순위 — 핸디캡 적용]
-${fullRankingLines.length ? fullRankingLines.join('\n') : '  (스코어 미입력)'}
-------------------------------
-[개인 순위 — 핸디캡 미적용]
-${rawRankingLines.length ? rawRankingLines.join('\n') : '  (스코어 미입력)'}
-------------------------------${(showOverall && shareOptions.money) ? `
-[개인전 상금]
-${overallLines.length ? overallLines.join('\n') : '  (스코어 미입력)'}
-------------------------------` : ''}
-[회원별 최종 상금]
-${memberTableText}`;
-
-  box.innerHTML = `
-    <div class="bg-white rounded-2xl p-4 shadow border-2 border-orange-300 space-y-3">
-      <div class="grid grid-cols-1 gap-2">
-        <div class="flex justify-between text-lg py-2 border-b"><span class="font-bold">참가 인원</span><span>${n}명</span></div>
-        <div class="flex justify-between text-lg py-2 border-b"><span class="font-bold">참가비 총액</span><span class="font-extrabold text-orange-700">${totalPot.toLocaleString()}원</span></div>
-        ${showOverall ? `<div class="flex justify-between text-lg py-2 border-b"><span class="font-bold">① 개인전 상금 (${prizeRules.overallPct}\%)</span><span>${actualOverallSum.toLocaleString()}원</span></div>` : ''}
-        ${showGroup ? `<div class="flex justify-between text-lg py-2 border-b"><span class="font-bold">② 조별 경쟁 상금 (${prizeRules.groupPct}\%)</span><span>${actualGroupSum.toLocaleString()}원</span></div>` : ''}
-        ${showNearPin ? `<div class="flex justify-between text-lg py-2 border-b"><span class="font-bold">③ 니어핀 상금</span><span>${actualNearPinSum.toLocaleString()}원</span></div>` : ''}
-      </div>
-    </div>
-
-    ${(luckyPoolAmount>0 || (luckyWinners && luckyWinners.length>0)) ? `
-    <div class="bg-purple-50 rounded-2xl p-4 shadow border-2 border-purple-400">
-      ${luckyPoolAmount>0 ? `
-      <p class="text-lg font-extrabold text-purple-800 text-center leading-relaxed">🎉 포상 후 남은 금액이 있습니다.<br>행운상을 추첨해 주세요!</p>
-      <p class="text-4xl font-extrabold text-purple-700 text-center my-3">${luckyPoolAmount.toLocaleString()}원</p>
-      ${userMode==='admin' ? `
-      <button onclick="openLuckyRoulette()" class="btn-primary w-full bg-purple-700 text-white py-4 rounded-xl active:bg-purple-900">
-        🎰 행운상 추첨하기
-      </button>` : ''}
-      ` : ''}
-    </div>` : ''}
-
-    <div class="bg-white rounded-2xl p-4 shadow border-2 border-green-300">
-      <h3 class="text-xl font-extrabold mb-2">👤 개인전 순위표 (핸디캡 적용)</h3>
-      ${winners.fullRanking.length ? `
-      <div class="space-y-1">
-        ${winners.fullRanking.map((w,i)=>`
-          <div class="flex justify-between items-center text-lg py-1 border-b border-gray-100 ${i<(prizeRules.overallPlaces||3)?'font-extrabold text-green-700':''}">
-            <span>${i+1}위 ${escapeHtml(w.id||w.name)}</span>
-            <div class="text-right">
-              <div class="text-base">${formatScore(w.net)}</div>
-              <div class="text-xs text-gray-400">${formatScore(w.gross)}${w.handicap ? ` · 핸디 ${w.handicap>0?'+':''}${w.handicap}` : ''}</div>
-            </div>
-          </div>`).join('')}
-      </div>` : `<p class="text-gray-400 text-center py-2">스코어가 입력된 참가자가 없습니다.</p>`}
-    </div>
-
-    <div class="bg-white rounded-2xl p-4 shadow border-2 border-blue-300">
-      <h3 class="text-xl font-extrabold mb-2">🏆 회원별 최종 상금</h3>
-      <div class="space-y-2">
-        ${memberRows.map(r=>`
-          <div class="border-2 ${r.total>0?'border-blue-200 bg-blue-50':'border-gray-100'} rounded-xl px-4 py-3">
-            <div class="flex justify-between items-center">
-              <span class="text-lg font-bold">${escapeHtml(r.id||r.name)}</span>
-              <span class="text-xl font-extrabold ${r.total>0?'text-blue-700':'text-gray-400'}">${r.total.toLocaleString()}원</span>
-            </div>
-          </div>`).join('')}
-      </div>
-    </div>
-
-    <div class="bg-gray-900 rounded-2xl p-4 shadow">
-      <p class="text-white text-lg font-extrabold mb-2">📋 공유용 결과</p>
-      <pre id="resultText" class="bg-white text-gray-900 rounded-xl p-4 text-base leading-relaxed whitespace-pre-wrap font-mono overflow-x-auto">${shareText}</pre>
-      <button onclick="copyResult()" class="btn-primary w-full mt-3 bg-yellow-400 text-gray-900 py-4 rounded-xl active:bg-yellow-500">
-        📋 결과 복사하기
-      </button>
-    </div>
-  `;
+  box.innerHTML = '<div class="bg-white p-4 rounded-xl border font-bold">정산 계산 완료 (참가자 ' + today.length + '명)</div>';
 }
 
-function updateShareOption(key, checked){
-  if(checkLocked()) return;
-  shareOptions[key] = checked;
-  pushState({ shareOptions });
-  computeMoney();
-}
-
-async function copyResult(){
-  const text = document.getElementById('resultText').innerText;
-  try{
-    await navigator.clipboard.writeText(text);
-    alert('정산 결과가 복사되었습니다!');
-  }catch(e){
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-    alert('정산 결과가 복사되었습니다!');
-  }
-}
-
-function displayLabel(name){
-  const p = today.find(t=>t.name===name);
-  return (p && p.id) ? p.id : name;
-}
-
-async function downloadElementAsImage(elementId, filename, btnEl){
-  const el = document.getElementById(elementId);
-  if(!el){ alert('저장할 내용을 찾지 못했습니다.'); return; }
-  const originalText = btnEl ? btnEl.textContent : '';
-  if(btnEl){ btnEl.disabled = true; btnEl.textContent = '⏳ 이미지 만드는 중...'; }
-
-  try{
-    const canvas = await html2canvas(el, { backgroundColor: '#ffffff', scale: 2, useCORS: true });
-    const dataUrl = canvas.toDataURL('image/png');
-    const a = document.createElement('a');
-    a.href = dataUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  } catch(err){
-    console.error(err);
-    alert('이미지 저장 중 오류: ' + err.message);
-  } finally {
-    if(btnEl){ btnEl.disabled = false; btnEl.textContent = originalText; }
-  }
-}
-
-function escapeHtml(str){
-  return String(str).replace(/[&<>"']/g, s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
-}
+function escapeHtml(str){ return String(str||'').replace(/[&<>"']/g, s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s])); }
+function escapeAttr(str){ return String(str||'').replace(/'/g, "\\'"); }
 
 window.addEventListener('DOMContentLoaded', ()=>{
-  const savedCode = localStorage.getItem('golf_club_code');
-  if(savedCode){
-    document.getElementById('roomCodeInput').value = savedCode;
-    if(initFirebase()) joinRoom();
-  }
+  const saved = localStorage.getItem('golf_club_code');
+  if(saved){ document.getElementById('roomCodeInput').value = saved; joinRoom(); }
 });
 </script>
 
-<!-- ================= AI 카메라 인식 기능 (모달 및 스크립트) ================= -->
+<!-- ================= AI 카메라 모달 ================= -->
 <div id="aiResultModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:99999; align-items:center; justify-content:center;">
-  <div style="background:#fff; width:92%; max-width:480px; max-height:85vh; border-radius:12px; padding:18px; display:flex; flex-direction:column; box-shadow:0 4px 15px rgba(0,0,0,0.3);">
-    <h3 id="aiModalTitle" style="margin-top:0; font-size:17px; border-bottom:1px solid #ddd; padding-bottom:8px;">인식 결과 확인</h3>
-    <div id="aiModalContent" style="flex:1; overflow-y:auto; margin:10px 0; font-size:14px;"></div>
-    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:10px;">
-      <button onclick="closeAiModal()" style="padding:9px 15px; background:#6c757d; color:#fff; border:none; border-radius:6px; cursor:pointer;">취소</button>
-      <button id="aiApplyBtn" style="padding:9px 18px; background:#007bff; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:bold;">앱에 반영하기</button>
+  <div style="background:#fff; width:92%; max-width:480px; max-height:85vh; border-radius:12px; padding:18px; display:flex; flex-direction:column;">
+    <h3 id="aiModalTitle" style="margin-top:0; font-size:17px; font-weight:bold;">인식 결과</h3>
+    <div id="aiModalContent" style="flex:1; overflow-y:auto; margin:10px 0;"></div>
+    <div style="display:flex; justify-content:flex-end; gap:8px;">
+      <button onclick="document.getElementById('aiResultModal').style.display='none'" style="padding:8px 14px; background:#aaa; color:#fff; border-radius:6px;">취소</button>
+      <button id="aiApplyBtn" style="padding:8px 16px; background:#007bff; color:#fff; border-radius:6px; font-weight:bold;">앱에 반영하기</button>
     </div>
   </div>
 </div>
 
 <script>
-// 1. 경기 직전 핸디캡 분석
+// 이미지 업로드 공통 처리
 async function handleHandicapUpload(input) {
   const file = input.files[0];
   if (!file) return;
-  const statusEl = document.getElementById("handicapStatus");
-  statusEl.innerText = "⏳ 사진 분석 중입니다...";
-
+  document.getElementById("handicapStatus").innerText = "⏳ 사진 분석 중...";
   try {
-    const base64Data = await resizeAndConvertToBase64(file);
-    const prompt = `이 사진은 스크린골프 경기 시작 전 플레이어 목록 화면입니다.
-플레이어 닉네임과 핸디를 정확히 추출하여 JSON 배열로 반환하세요.
-부호(+ 또는 -)와 소수점을 빠짐없이 숫자로 변환하세요.
-형식: [{"name": "닉네임", "handicap": 0.7}]`;
-
-    const resJson = await requestGeminiVision(base64Data, "image/jpeg", prompt);
-    const players = JSON.parse(resJson);
-    showHandicapModal(players);
-    statusEl.innerText = `✅ ${players.length}명 인식 완료`;
-  } catch (err) {
-    alert("오류: " + err.message);
-    statusEl.innerText = "❌ 분석 실패";
-  } finally {
-    input.value = "";
+    const base64 = await fileToBase64(file);
+    const res = await callGeminiAPI(base64, file.type, `스크린골프 시작 전 플레이어 닉네임과 핸디를 찾아 JSON으로 응답: [{"name":"이름","handicap":0.7}]`);
+    const data = JSON.parse(res);
+    showModal("경기 직전 핸디캡", data.map(d=>`${d.name}: ${d.handicap}`).join("<br>"), ()=>{
+      data.forEach(d=>{
+        const p = today.find(t=>(t.id&&t.id===d.name)||t.name===d.name);
+        if(p) p.handicap = d.handicap;
+      });
+      pushState({ today });
+      renderToday();
+    });
+    document.getElementById("handicapStatus").innerText = `✅ ${data.length}명 인식 완료`;
+  } catch(e) {
+    alert("오류: " + e.message);
+    document.getElementById("handicapStatus").innerText = "❌ 실패";
   }
 }
 
-// 2. 경기 직후 스코어보드 분석 (2장 이상 선택 시 중복 자동제거)
 async function handleScorecardUpload(input) {
   const files = Array.from(input.files);
-  if (!files || files.length === 0) return;
-  const statusEl = document.getElementById("scorecardStatus");
-  statusEl.innerText = `⏳ ${files.length}장 사진 분석 및 중복 제거 중...`;
-
+  if (!files.length) return;
+  document.getElementById("scorecardStatus").innerText = "⏳ 스코어카드 분석 중...";
   try {
-    let rawList = [];
-    for (let i = 0; i < files.length; i++) {
-      statusEl.innerText = `⏳ [${i + 1}/${files.length}장] 분석 중...`;
-      const base64Data = await resizeAndConvertToBase64(files[i]);
-      const prompt = `이 사진은 골프 스코어카드 상세 목록 화면입니다.
-각 플레이어의 순위, 닉네임, 타수를 정확히 추출하여 JSON 배열로 반환하세요.
-'타' 글자는 제외하고 숫자만 추출하세요.
-형식: [{"rank": 1, "name": "닉네임", "score": 76}]`;
-
-      const resJson = await requestGeminiVision(base64Data, "image/jpeg", prompt);
-      rawList.push(...JSON.parse(resJson));
+    let all = [];
+    for(const f of files) {
+      const base64 = await fileToBase64(f);
+      const res = await callGeminiAPI(base64, f.type, `골프 스코어카드 목록에서 순위, 닉네임, 타수를 찾아 JSON 배열로 응답: [{"rank":1,"name":"이름","score":76}]`);
+      all.push(...JSON.parse(res));
     }
-
-    // 이름(닉네임) 기준으로 중복 단일화 병합
-    const mergedMap = new Map();
-    rawList.forEach(item => {
-      const cleanName = item.name.trim();
-      if (!mergedMap.has(cleanName)) {
-        mergedMap.set(cleanName, { rank: Number(item.rank) || 999, name: cleanName, score: Number(item.score) });
-      }
-    });
-
-    const finalScores = Array.from(mergedMap.values()).sort((a, b) => a.rank - b.rank);
-    showScorecardModal(finalScores);
-    statusEl.innerText = `✅ 총 ${finalScores.length}명 집계 완료`;
-  } catch (err) {
-    alert("오류: " + err.message);
-    statusEl.innerText = "❌ 분석 실패";
-  } finally {
-    input.value = "";
-  }
-}
-
-// 3. 구글 Gemini API 전송 (최신 Gemini 3.x Flash 자동 연결)
-async function requestGeminiVision(base64Data, mimeType, prompt) {
-  let activeKey = localStorage.getItem("GEMINI_API_KEY");
-  if (!activeKey) {
-    activeKey = window.prompt("구글 AI Studio에서 발급받은 Gemini API Key를 입력해주세요:");
-    if (activeKey) {
-      activeKey = activeKey.trim();
-      localStorage.setItem("GEMINI_API_KEY", activeKey);
-    } else {
-      throw new Error("API 키가 입력되지 않았습니다.");
-    }
-  }
-
-  const payload = {
-    contents: [{
-      parts: [
-        { text: prompt },
-        { inline_data: { mime_type: mimeType, data: base64Data } }
-      ]
-    }],
-    generationConfig: {
-      response_mime_type: "application/json"
-    }
-  };
-
-  // 최신 모델 순차 시도 (404 방지)
-  const candidateModels = [
-    "gemini-3.8-flash",
-    "gemini-3.5-flash",
-    "gemini-3.1-flash-lite"
-  ];
-
-  let lastStatus = 0;
-  let lastErrorText = "";
-
-  for (const model of candidateModels) {
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${activeKey}`;
-      const response = await fetch(url, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "x-goog-api-key": activeKey 
-        },
-        body: JSON.stringify(payload)
+    const map = new Map();
+    all.forEach(x => { if(!map.has(x.name)) map.set(x.name, x); });
+    const list = Array.from(map.values()).sort((a,b)=>a.rank-b.rank);
+    showModal("최종 스코어", list.map(d=>`${d.rank}위 ${d.name}: ${d.score}타`).join("<br>"), ()=>{
+      list.forEach(d=>{
+        const p = today.find(t=>(t.id&&t.id===d.name)||t.name===d.name);
+        if(p) scores[p.name] = d.score;
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        return data.candidates[0].content.parts[0].text;
-      }
-
-      lastStatus = response.status;
-      lastErrorText = await response.text();
-    } catch (e) {
-      console.warn(`모델 ${model} 시도 중 오류:`, e);
-    }
+      pushState({ scores });
+      alert("스코어 반영 완료");
+    });
+    document.getElementById("scorecardStatus").innerText = `✅ ${list.length}명 집계 완료`;
+  } catch(e) {
+    alert("오류: " + e.message);
+    document.getElementById("scorecardStatus").innerText = "❌ 실패";
   }
-
-  localStorage.removeItem("GEMINI_API_KEY");
-  throw new Error(`API 오류 (${lastStatus}): 모델 연결을 확인하지 못했습니다.`);
 }
 
+function showModal(title, content, onApply) {
+  document.getElementById("aiModalTitle").innerText = title;
+  document.getElementById("aiModalContent").innerHTML = content;
+  document.getElementById("aiApplyBtn").onclick = () => { onApply(); document.getElementById("aiResultModal").style.display='none'; };
+  document.getElementById("aiResultModal").style.display = 'flex';
+}
 
-function resizeAndConvertToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        let width = img.width;
-        let height = img.height;
-        if (width > 1280) {
-          height = Math.round((height * 1280) / width);
-          width = 1280;
-        }
-        canvas.width = width;
-        canvas.height = height;
-        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", 0.85).split(",")[1]);
-      };
-      img.onerror = reject;
-      img.src = e.target.result;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
+async function callGeminiAPI(base64Data, mimeType, prompt) {
+  let key = localStorage.getItem("GEMINI_API_KEY");
+  if(!key) {
+    key = window.prompt("Gemini API Key를 입력하세요:");
+    if(key) localStorage.setItem("GEMINI_API_KEY", key.trim());
+    else throw new Error("API 키 누락");
+  }
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: mimeType, data: base64Data } }] }],
+      generationConfig: { response_mime_type: "application/json" }
+    })
   });
+  if(!res.ok) {
+    const err = await res.text();
+    localStorage.removeItem("GEMINI_API_KEY");
+    throw new Error(`API 오류 (${res.status}): ${err.slice(0, 100)}`);
+  }
+  const json = await res.json();
+  return json.candidates[0].content.parts[0].text;
 }
 
-function showHandicapModal(players) {
-  const modal = document.getElementById("aiResultModal");
-  document.getElementById("aiModalTitle").innerText = `⛳ 경기 직전 핸디 (${players.length}명)`;
-  let html = `<table style="width:100%; border-collapse:collapse;">`;
-  players.forEach(p => {
-    html += `<tr><td style="padding:4px;">${p.name}</td><td style="padding:4px; text-align:right; font-weight:bold; color:#0056b3;">${p.handicap > 0 ? '+' : ''}${p.handicap}</td></tr>`;
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
   });
-  html += `</table>`;
-  document.getElementById("aiModalContent").innerHTML = html;
-  
-  document.getElementById("aiApplyBtn").onclick = () => {
-    const lines = players.map(p => `${p.name} ${p.handicap > 0 ? '+' : ''}${p.handicap}`).join("\n");
-    const pasteBox = document.getElementById("handicapPasteBox");
-    const pasteInput = document.getElementById("handicapPasteInput");
-    if (pasteBox && pasteInput) {
-      pasteBox.classList.remove("hidden");
-      pasteInput.value = lines;
-      applyHandicapPaste();
-    }
-    closeAiModal();
-  };
-  modal.style.display = "flex";
-}
-
-function showScorecardModal(scores) {
-  const modal = document.getElementById("aiResultModal");
-  document.getElementById("aiModalTitle").innerText = `🏆 최종 스코어 (${scores.length}명)`;
-  let html = `<table style="width:100%; border-collapse:collapse;">`;
-  scores.forEach(s => {
-    html += `<tr><td style="padding:4px;">${s.rank}위</td><td style="padding:4px;">${s.name}</td><td style="padding:4px; text-align:right; font-weight:bold; color:#d9534f;">${s.score}타</td></tr>`;
-  });
-  html += `</table>`;
-  document.getElementById("aiModalContent").innerHTML = html;
-
-  document.getElementById("aiApplyBtn").onclick = () => {
-    const lines = scores.map(s => `${s.name} ${s.score}`).join("\n");
-    const pasteBox = document.getElementById("scorePasteBox");
-    const pasteInput = document.getElementById("scorePasteInput");
-    if (pasteBox && pasteInput) {
-      pasteBox.classList.remove("hidden");
-      pasteInput.value = lines;
-      applyScorePaste();
-    }
-    closeAiModal();
-  };
-  modal.style.display = "flex";
-}
-
-function closeAiModal() {
-  document.getElementById("aiResultModal").style.display = "none";
 }
 </script>
 
