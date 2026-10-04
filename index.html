@@ -37,7 +37,7 @@
       입장하기
     </button>
     <p id="roomGateMsg" class="text-red-600 text-sm mt-3 text-center"></p>
-    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v46</p>
+    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v47</p>
   </div>
 </div>
 
@@ -761,6 +761,31 @@ function calcMoneyForEvent(data){
   return memberPrize;
 }
 
+function computeEventGroupRankingForStats(data){
+  const scoresObj = data.scores || {};
+  const scoreIsRawObj = data.scoreIsRaw || {};
+  const netScore = p => {
+    if(scoresObj[p.name] == null) return null;
+    const h = p.handicap || 0;
+    if(scoreIsRawObj[p.name]) return h > 0 ? scoresObj[p.name] - h : scoresObj[p.name];
+    return h < 0 ? scoresObj[p.name] + h : scoresObj[p.name];
+  };
+  const groupsArr = data.groups ? data.groups.map(g => g.members || g) : [];
+  const hioByGroup = {};
+  (data.holeInOnes||[]).forEach(h=>{
+    if(!h.name) return;
+    groupsArr.forEach((g,gi)=>{ if(g.find(p=>p.name===h.name)) hioByGroup[gi] = (hioByGroup[gi]||0) + (h.prize||0); });
+  });
+  const groupsInfo = groupsArr.map((g,gi)=>{
+    const scored = g.filter(p=>scoresObj[p.name]!=null);
+    const avgNet = scored.length ? scored.reduce((s,p)=>s+netScore(p),0)/scored.length : null;
+    return { groupIndex: gi, members: g, avgNet, hio: hioByGroup[gi]||0 };
+  }).filter(x=>x.avgNet!=null || x.hio>0);
+  const hioGroups = groupsInfo.filter(x=>x.hio>0).sort((a,b)=>b.hio-a.hio);
+  const normalGroups = groupsInfo.filter(x=>x.hio===0).sort((a,b)=>a.avgNet-b.avgNet);
+  return [...hioGroups, ...normalGroups];
+}
+
 async function runPeriodStats(){
   const startVal = document.getElementById('statsStart').value;
   const endVal = document.getElementById('statsEnd').value;
@@ -784,21 +809,20 @@ async function runPeriodStats(){
       return;
     }
 
-    const prizeTotals = {};
-    const handicapSeries = {};
     const idByName = {};
-    const pairCounts = {}; // "이름1|이름2" -> 같은 조 횟수
-    const clubRecords = []; // 대회별 순위 + 조편성 기록
+    const handicapSeries = {};      // name -> [{date, handicap}]
+    const grossSeries = {};         // name -> [gross타수, ...]
+    const netSeries = {};           // name -> [net타수, ...]
+    const groupedCount = {};        // name -> 조편성에 포함된 횟수
+    const winCount = {};            // name -> 승리조(1,2위) 포함 횟수
+    const pairTotalCount = {};      // "이름1|이름2" -> 같은 조 횟수
+    const pairWinCount = {};        // "이름1|이름2" -> 같은 조 + 승리조 횟수
+    const clubRecords = [];
 
     snap.forEach(doc=>{
       const data = doc.data();
       const eventDate = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate() : new Date(0);
       const dateLabel = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate().toLocaleDateString('ko-KR') : '';
-
-      const memberPrize = calcMoneyForEvent(data);
-      Object.keys(memberPrize).forEach(name=>{
-        prizeTotals[name] = (prizeTotals[name]||0) + memberPrize[name];
-      });
 
       (data.today||[]).forEach(p=>{
         if(p.id) idByName[p.name] = p.id;
@@ -806,7 +830,6 @@ async function runPeriodStats(){
         handicapSeries[p.name].push({ date: eventDate, handicap: p.handicap });
       });
 
-      // 이 대회의 핸디 적용 순위 계산
       const eventScores = data.scores || {};
       const eventScoreIsRaw = data.scoreIsRaw || {};
       const eventRanking = (data.today||[])
@@ -816,126 +839,208 @@ async function runPeriodStats(){
           let net;
           if(eventScoreIsRaw[p.name]) net = h > 0 ? eventScores[p.name] - h : eventScores[p.name];
           else net = h < 0 ? eventScores[p.name] + h : eventScores[p.name];
-          return { name: p.name, id: p.id, net };
+          if(!grossSeries[p.name]) grossSeries[p.name] = [];
+          if(!netSeries[p.name]) netSeries[p.name] = [];
+          grossSeries[p.name].push(eventScores[p.name]);
+          netSeries[p.name].push(net);
+          return { name: p.name, id: p.id, net, gross: eventScores[p.name] };
         })
         .sort((a,b)=> a.net - b.net);
 
-      // 이 대회의 조편성 (아이디/이름 목록)
       const eventGroups = data.groups ? data.groups.map(g => (g.members||g).map(p=>p.id||p.name)) : null;
-
       if(eventRanking.length > 0 || eventGroups){
-        clubRecords.push({
-          title: data.title || '이름없는 대회',
-          dateLabel,
-          date: eventDate,
-          ranking: eventRanking,
-          groups: eventGroups
-        });
+        clubRecords.push({ title: data.title || '이름없는 대회', dateLabel, date: eventDate, ranking: eventRanking, groups: eventGroups });
       }
 
-      // 같은 조에 속했던 조합(인연) 집계
-      if(data.groups){
-        data.groups.forEach(g=>{
-          const members = (g.members||g).map(p=>p.name);
-          for(let i=0;i<members.length;i++){
-            for(let j=i+1;j<members.length;j++){
-              const key = [members[i], members[j]].sort().join('|');
-              pairCounts[key] = (pairCounts[key]||0) + 1;
-            }
+      // 조편성/승리조/짝꿍 집계
+      const ranking = computeEventGroupRankingForStats(data);
+      const winningGroups = ranking.slice(0, Math.min(2, ranking.length));
+      const winningGroupIdx = new Set(winningGroups.map(g=>g.groupIndex));
+
+      ranking.forEach(gr=>{
+        const members = (gr.members||[]).map(p=>p.name);
+        const isWin = winningGroupIdx.has(gr.groupIndex);
+        members.forEach(name=>{
+          groupedCount[name] = (groupedCount[name]||0) + 1;
+          if(isWin) winCount[name] = (winCount[name]||0) + 1;
+        });
+        for(let i=0;i<members.length;i++){
+          for(let j=i+1;j<members.length;j++){
+            const key = [members[i], members[j]].sort().join('|');
+            pairTotalCount[key] = (pairTotalCount[key]||0) + 1;
+            if(isWin) pairWinCount[key] = (pairWinCount[key]||0) + 1;
           }
-        });
-      }
+        }
+      });
     });
-
-    const prizeRanking = Object.keys(prizeTotals)
-      .map(name=>({ name, id: idByName[name], total: prizeTotals[name] }))
-      .filter(x=>x.total > 0)
-      .sort((a,b)=> b.total - a.total);
-
-    const improveRanking = Object.keys(handicapSeries)
-      .map(name=>{
-        const series = handicapSeries[name].slice().sort((a,b)=> a.date - b.date);
-        if(series.length < 2) return null;
-        const first = series[0].handicap;
-        const last = series[series.length-1].handicap;
-        return { name, id: idByName[name], first, last, improvement: first - last, count: series.length };
-      })
-      .filter(x=>x)
-      .sort((a,b)=> b.improvement - a.improvement);
-
-    // 평균 핸디캡
-    const avgHandicapList = Object.keys(handicapSeries)
-      .map(name=>{
-        const series = handicapSeries[name];
-        const avg = series.reduce((s,x)=>s+x.handicap,0) / series.length;
-        return { name, id: idByName[name], avg, count: series.length };
-      })
-      .sort((a,b)=> a.avg - b.avg);
-
-    // 인연 Top3
-    const pairTop3 = Object.keys(pairCounts)
-      .map(key=>{
-        const [n1, n2] = key.split('|');
-        return { n1, n2, id1: idByName[n1], id2: idByName[n2], count: pairCounts[key] };
-      })
-      .sort((a,b)=> b.count - a.count)
-      .slice(0, 3);
 
     clubRecords.sort((a,b)=> a.date - b.date);
 
-    renderStatsResult(prizeRanking, improveRanking, snap.size, avgHandicapList, pairTop3, clubRecords);
+    // ① 회원별 통계 (승리조 포함횟수/확률)
+    const memberStats = Object.keys(groupedCount).map(name=>{
+      const played = groupedCount[name];
+      const wins = winCount[name] || 0;
+      return { name, id: idByName[name], played, wins, rate: played>0 ? wins/played*100 : 0 };
+    }).sort((a,b)=> b.rate - a.rate);
+
+    // ② 내가 젤 잘나가 Top5 (승률 높은 순)
+    const topWinners = [...memberStats].sort((a,b)=> b.rate - a.rate || b.wins - a.wins).slice(0,5);
+    // ③ 내가 젤 안나가 Top5 (승률 낮은 순)
+    const bottomWinners = [...memberStats].sort((a,b)=> a.rate - b.rate || a.wins - b.wins).slice(0,5);
+
+    // ④ 인연 Top3
+    const pairTop3 = Object.keys(pairTotalCount)
+      .map(key=>{ const [n1,n2]=key.split('|'); return { n1, n2, id1: idByName[n1], id2: idByName[n2], count: pairTotalCount[key] }; })
+      .sort((a,b)=> b.count - a.count).slice(0,3);
+
+    // ⑤⑥ 짝꿍 승률
+    const pairStats = Object.keys(pairTotalCount).map(key=>{
+      const [n1,n2] = key.split('|');
+      const total = pairTotalCount[key];
+      const wins = pairWinCount[key] || 0;
+      return { n1, n2, id1: idByName[n1], id2: idByName[n2], total, wins, rate: total>0 ? wins/total*100 : 0 };
+    });
+    const bestDuo = [...pairStats].sort((a,b)=> b.rate - a.rate || b.wins - a.wins).slice(0,5);
+    const worstDuo = [...pairStats].sort((a,b)=> a.rate - b.rate || a.wins - b.wins).slice(0,5);
+
+    // ⑦ 핸디캡왕 Top5 (핸디적용 평균 낮은 순)
+    const handicapKing = Object.keys(netSeries).map(name=>{
+      const series = netSeries[name];
+      const avgNet = series.reduce((s,x)=>s+x,0)/series.length;
+      const hcSeries = (handicapSeries[name]||[]).map(x=>x.handicap);
+      const avgHc = hcSeries.length ? hcSeries.reduce((s,x)=>s+x,0)/hcSeries.length : 0;
+      return { name, id: idByName[name], avgNet, avgHc, count: series.length };
+    }).sort((a,b)=> a.avgNet - b.avgNet).slice(0,5);
+
+    // ⑧ 일스클럽 선수선발 Top5 (핸디미적용 평균 낮은 순)
+    const topPlayer = Object.keys(grossSeries).map(name=>{
+      const series = grossSeries[name];
+      const avgGross = series.reduce((s,x)=>s+x,0)/series.length;
+      const hcSeries = (handicapSeries[name]||[]).map(x=>x.handicap);
+      const avgHc = hcSeries.length ? hcSeries.reduce((s,x)=>s+x,0)/hcSeries.length : 0;
+      return { name, id: idByName[name], avgGross, avgHc, count: series.length };
+    }).sort((a,b)=> a.avgGross - b.avgGross).slice(0,5);
+
+    // ⑨⑩ 기복이/꾸준이 (총타수 최고-최저 폭)
+    const rangeStats = Object.keys(grossSeries).filter(name=>grossSeries[name].length>=2).map(name=>{
+      const series = grossSeries[name];
+      const max = Math.max(...series), min = Math.min(...series);
+      return { name, id: idByName[name], range: max-min, max, min, count: series.length };
+    });
+    const upDownKing = [...rangeStats].sort((a,b)=> b.range - a.range).slice(0,5);
+    const steadyKing = [...rangeStats].sort((a,b)=> a.range - b.range).slice(0,5);
+
+    // ⑪ 쑥쑥이 Top5 (핸디캡 감소량, 기간 내 첫 대회 → 마지막 대회)
+    const improveTop5 = Object.keys(handicapSeries).map(name=>{
+      const series = handicapSeries[name].slice().sort((a,b)=> a.date - b.date);
+      if(series.length < 2) return null;
+      const first = series[0].handicap, last = series[series.length-1].handicap;
+      return { name, id: idByName[name], first, last, improvement: first - last, count: series.length };
+    }).filter(x=>x).sort((a,b)=> b.improvement - a.improvement).slice(0,5);
+
+    const statsData = {
+      eventCount: snap.size, clubRecords, memberStats, topWinners, bottomWinners,
+      pairTop3, bestDuo, worstDuo, handicapKing, topPlayer, upDownKing, steadyKing, improveTop5
+    };
+    lastStatsData = statsData;
+    renderStatsResult(statsData);
   } catch(err){
     console.error(err);
     resultBox.innerHTML = `<p class="text-red-600 text-center py-4">집계 중 오류: ${err.message}</p>`;
   }
 }
 
-function renderStatsResult(prizeRanking, improveRanking, eventCount, avgHandicapList, pairTop3, clubRecords){
+let lastStatsData = null;
+const STAT_SECTIONS = [
+  { key: 'topWinners', emoji: '🔥', title: '내가 젤 잘나가 Top5', color: 'orange',
+    render: d => d.topWinners.length ? d.topWinners.map((r,i)=>`
+      <div class="flex justify-between items-center py-1 ${i===0?'font-extrabold text-orange-700 text-lg':'text-base'}">
+        <span>${i+1}위 ${i===0?'🔥 ':''}${escapeHtml(r.id||r.name)}</span>
+        <span>승률 ${r.rate.toFixed(1)}% (${r.wins}/${r.played}회)</span>
+      </div>`).join('') : '<p class="text-gray-400 text-center py-2">기록이 없습니다.</p>' },
+  { key: 'bottomWinners', emoji: '😅', title: '내가 젤 안나가 Top5', color: 'gray',
+    render: d => d.bottomWinners.length ? d.bottomWinners.map((r,i)=>`
+      <div class="flex justify-between items-center py-1 text-base">
+        <span>${i+1}위 ${escapeHtml(r.id||r.name)}</span>
+        <span>승률 ${r.rate.toFixed(1)}% (${r.wins}/${r.played}회)</span>
+      </div>`).join('') : '<p class="text-gray-400 text-center py-2">기록이 없습니다.</p>' },
+  { key: 'pairTop3', emoji: '💞', title: '인연 Top3 (같은 조 최다 횟수)', color: 'pink',
+    render: d => d.pairTop3.length ? d.pairTop3.map((p,i)=>`
+      <div class="flex justify-between items-center py-1 ${i===0?'font-extrabold text-pink-700 text-lg':'text-base'}">
+        <span>${i+1}위 ${escapeHtml(p.id1||p.n1)} ↔ ${escapeHtml(p.id2||p.n2)}</span>
+        <span>${p.count}회</span>
+      </div>`).join('') : '<p class="text-gray-400 text-center py-2">같은 조 기록이 없습니다.</p>' },
+  { key: 'bestDuo', emoji: '💘', title: '환상의 짝꿍 Top5', color: 'rose',
+    render: d => d.bestDuo.length ? d.bestDuo.map((p,i)=>`
+      <div class="flex justify-between items-center py-1 ${i===0?'font-extrabold text-rose-700 text-lg':'text-base'}">
+        <span>${i+1}위 ${escapeHtml(p.id1||p.n1)} ↔ ${escapeHtml(p.id2||p.n2)}</span>
+        <span>승률 ${p.rate.toFixed(1)}% (${p.wins}회)</span>
+      </div>`).join('') : '<p class="text-gray-400 text-center py-2">기록이 없습니다.</p>' },
+  { key: 'worstDuo', emoji: '💔', title: '환장의 짝꿍 Top5', color: 'slate',
+    render: d => d.worstDuo.length ? d.worstDuo.map((p,i)=>`
+      <div class="flex justify-between items-center py-1 text-base">
+        <span>${i+1}위 ${escapeHtml(p.id1||p.n1)} ↔ ${escapeHtml(p.id2||p.n2)}</span>
+        <span>승률 ${p.rate.toFixed(1)}%</span>
+      </div>`).join('') : '<p class="text-gray-400 text-center py-2">기록이 없습니다.</p>' },
+  { key: 'handicapKing', emoji: '👑', title: '핸디캡 왕 Top5 (핸디적용 평균)', color: 'blue',
+    render: d => d.handicapKing.length ? d.handicapKing.map((r,i)=>`
+      <div class="flex justify-between items-center py-1 ${i===0?'font-extrabold text-blue-700 text-lg':'text-base'}">
+        <span>${i+1}위 ${escapeHtml(r.id||r.name)}</span>
+        <span>평균 ${r.avgNet.toFixed(1)}타 (핸디 ${r.avgHc.toFixed(1)})</span>
+      </div>`).join('') : '<p class="text-gray-400 text-center py-2">기록이 없습니다.</p>' },
+  { key: 'topPlayer', emoji: '🏌️', title: '일스클럽 선수선발 Top5 (핸디미적용 평균)', color: 'green',
+    render: d => d.topPlayer.length ? d.topPlayer.map((r,i)=>`
+      <div class="flex justify-between items-center py-1 ${i===0?'font-extrabold text-green-700 text-lg':'text-base'}">
+        <span>${i+1}위 ${escapeHtml(r.id||r.name)}</span>
+        <span>평균 ${r.avgGross.toFixed(1)}타 (핸디 ${r.avgHc.toFixed(1)})</span>
+      </div>`).join('') : '<p class="text-gray-400 text-center py-2">기록이 없습니다.</p>' },
+  { key: 'upDownKing', emoji: '🎢', title: '기복이 Top5 (최고-최저 타수폭)', color: 'purple',
+    render: d => d.upDownKing.length ? d.upDownKing.map((r,i)=>`
+      <div class="flex justify-between items-center py-1 ${i===0?'font-extrabold text-purple-700 text-lg':'text-base'}">
+        <span>${i+1}위 ${escapeHtml(r.id||r.name)}</span>
+        <span>타수폭 ${r.range.toFixed(1)} (${r.min}~${r.max})</span>
+      </div>`).join('') : '<p class="text-gray-400 text-center py-2">기록이 없습니다.</p>' },
+  { key: 'steadyKing', emoji: '🪨', title: '꾸준이 Top5 (최고-최저 타수폭)', color: 'teal',
+    render: d => d.steadyKing.length ? d.steadyKing.map((r,i)=>`
+      <div class="flex justify-between items-center py-1 ${i===0?'font-extrabold text-teal-700 text-lg':'text-base'}">
+        <span>${i+1}위 ${escapeHtml(r.id||r.name)}</span>
+        <span>타수폭 ${r.range.toFixed(1)} (${r.min}~${r.max})</span>
+      </div>`).join('') : '<p class="text-gray-400 text-center py-2">기록이 없습니다.</p>' },
+  { key: 'improveTop5', emoji: '🚀', title: '쑥쑥이 Top5 (핸디캡 감소량)', color: 'indigo',
+    render: d => d.improveTop5.length ? d.improveTop5.map((r,i)=>`
+      <div class="flex justify-between items-center py-1 ${i===0?'font-extrabold text-indigo-700 text-lg':'text-base'}">
+        <span>${i+1}위 ${escapeHtml(r.id||r.name)}</span>
+        <span>${r.first.toFixed(1)} → ${r.last.toFixed(1)} (${r.improvement>0?'-':'+'}${Math.abs(r.improvement).toFixed(1)})</span>
+      </div>`).join('') : '<p class="text-gray-400 text-center py-2">2회 이상 참가한 회원이 없습니다.</p>' },
+  { key: 'memberStats', emoji: '📋', title: '회원별 통계 (승리조 소속 횟수·확률)', color: 'amber',
+    render: d => d.memberStats.length ? d.memberStats.map(r=>`
+      <div class="flex justify-between items-center py-1 text-base">
+        <span>${escapeHtml(r.id||r.name)}</span>
+        <span>승률 ${r.rate.toFixed(1)}% (${r.wins}/${r.played}회)</span>
+      </div>`).join('') : '<p class="text-gray-400 text-center py-2">기록이 없습니다.</p>' }
+];
+
+function renderStatsResult(statsData){
   const box = document.getElementById('statsResult');
   box.innerHTML = `
-    <p class="text-sm text-gray-500 mb-3">집계 대상: 대회 ${eventCount}개</p>
+    <p class="text-sm text-gray-500 mb-3">집계 대상: 대회 ${statsData.eventCount}개 · 체크한 항목만 아래 "이미지로 저장"에 포함됩니다.</p>
 
-    <p class="text-lg font-extrabold mb-2 mt-2">👥 ① 기간별 회원 기록</p>
+    ${STAT_SECTIONS.map(sec => `
+    <div class="bg-${sec.color}-50 border-2 border-${sec.color}-300 rounded-xl p-3 mb-3">
+      <label class="flex items-center gap-2 mb-2">
+        <input type="checkbox" id="statChk-${sec.key}" checked onchange="renderStatsExportPreview()" class="w-5 h-5">
+        <span class="text-base font-extrabold">${sec.emoji} ${sec.title}</span>
+      </label>
+      ${sec.render(statsData)}
+    </div>`).join('')}
 
-    <div class="bg-orange-50 border-2 border-orange-300 rounded-xl p-3 mb-3">
-      <p class="text-base font-extrabold mb-2">💰 상금왕 순위 (합산 상금)</p>
-      ${prizeRanking.length ? prizeRanking.map((r,i)=>`
-        <div class="flex justify-between items-center py-1 ${i===0?'font-extrabold text-orange-700 text-lg':'text-base'}">
-          <span>${i+1}위 ${i===0?'👑 ':''}${escapeHtml(r.id||r.name)}</span>
-          <span>${r.total.toLocaleString()}원</span>
-        </div>`).join('') : '<p class="text-gray-400 text-center py-2">상금 기록이 없습니다.</p>'}
-    </div>
+    <button onclick="downloadElementAsImage('statsExportArea', '일스클럽_통계.png', this)" class="btn-primary w-full bg-yellow-500 text-white py-4 rounded-xl active:bg-yellow-600 mb-4">
+      🖼️ 체크한 통계 이미지로 저장 (카톡 공유용)
+    </button>
+    <div id="statsExportArea" class="bg-white rounded-2xl p-5 shadow border-2 border-gray-300"></div>
 
-    <div class="bg-blue-50 border-2 border-blue-300 rounded-xl p-3 mb-3">
-      <p class="text-base font-extrabold mb-2">📈 향상왕 순위 (핸디캡 감소량)</p>
-      <p class="text-xs text-gray-500 mb-2">기간 내 첫 대회 핸디캡 → 마지막 대회 핸디캡 기준 (최소 2회 이상 참가자만 집계)</p>
-      ${improveRanking.length ? improveRanking.map((r,i)=>`
-        <div class="flex justify-between items-center py-1 ${i===0?'font-extrabold text-blue-700 text-lg':'text-base'}">
-          <span>${i+1}위 ${i===0?'🚀 ':''}${escapeHtml(r.id||r.name)}</span>
-          <span>${r.first} → ${r.last} (${r.improvement>0?'-':'+'}${Math.abs(r.improvement).toFixed(1)})</span>
-        </div>`).join('') : '<p class="text-gray-400 text-center py-2">2회 이상 참가한 회원이 없습니다.</p>'}
-    </div>
-
-    <div class="bg-green-50 border-2 border-green-300 rounded-xl p-3 mb-3">
-      <p class="text-base font-extrabold mb-2">📊 회원별 평균 핸디캡</p>
-      ${avgHandicapList && avgHandicapList.length ? avgHandicapList.map(r=>`
-        <div class="flex justify-between items-center py-1 text-base">
-          <span>${escapeHtml(r.id||r.name)}</span>
-          <span>평균 ${r.avg.toFixed(1)} (${r.count}회 참가)</span>
-        </div>`).join('') : '<p class="text-gray-400 text-center py-2">기록이 없습니다.</p>'}
-    </div>
-
-    <div class="bg-pink-50 border-2 border-pink-300 rounded-xl p-3 mb-4">
-      <p class="text-base font-extrabold mb-2">💞 인연 Top3 (같은 조 최다 횟수)</p>
-      ${pairTop3 && pairTop3.length ? pairTop3.map((p,i)=>`
-        <div class="flex justify-between items-center py-1 ${i===0?'font-extrabold text-pink-700 text-lg':'text-base'}">
-          <span>${i+1}위 ${escapeHtml(p.id1||p.n1)} ↔ ${escapeHtml(p.id2||p.n2)}</span>
-          <span>${p.count}회</span>
-        </div>`).join('') : '<p class="text-gray-400 text-center py-2">같은 조 기록이 없습니다.</p>'}
-    </div>
-
-    <p class="text-lg font-extrabold mb-2 mt-4">🏌️ ② 기간별 클럽 기록</p>
-    ${clubRecords && clubRecords.length ? clubRecords.map(ev=>`
+    <p class="text-lg font-extrabold mb-2 mt-5">🏌️ 기간별 클럽 기록 (대회별 순위·조편성)</p>
+    ${statsData.clubRecords && statsData.clubRecords.length ? statsData.clubRecords.map(ev=>`
       <div class="bg-gray-50 border-2 border-gray-300 rounded-xl p-3 mb-3">
         <p class="text-base font-extrabold mb-1">${escapeHtml(ev.title)} <span class="text-xs text-gray-500 font-normal">(${ev.dateLabel})</span></p>
         ${ev.ranking.length ? `
@@ -948,7 +1053,33 @@ function renderStatsResult(prizeRanking, improveRanking, eventCount, avgHandicap
         ` : ''}
       </div>`).join('') : '<p class="text-gray-400 text-center py-2">기록이 없습니다.</p>'}
   `;
+  renderStatsExportPreview();
 }
+
+function renderStatsExportPreview(){
+  const area = document.getElementById('statsExportArea');
+  if(!area || !lastStatsData) return;
+  const checked = STAT_SECTIONS.filter(sec => {
+    const el = document.getElementById('statChk-'+sec.key);
+    return el && el.checked;
+  });
+  if(checked.length === 0){
+    area.innerHTML = '<p class="text-gray-400 text-center py-4">위에서 포함할 항목을 체크해 주세요.</p>';
+    return;
+  }
+  area.innerHTML = `
+    <h3 class="text-xl font-extrabold text-center mb-1">⛳ 일스클럽 쫄깃한판</h3>
+    <p class="text-base text-gray-500 text-center mb-4">기간별 통계 · 대회 ${lastStatsData.eventCount}개</p>
+    <div class="space-y-4">
+      ${checked.map(sec => `
+        <div>
+          <p class="text-lg font-extrabold mb-2">${sec.emoji} ${sec.title}</p>
+          ${sec.render(lastStatsData)}
+        </div>`).join('')}
+    </div>
+  `;
+}
+
 
 function createEvent(){
   const btnGuard = document.getElementById('createEventBtn');
