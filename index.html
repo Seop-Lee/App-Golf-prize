@@ -37,7 +37,7 @@
       입장하기
     </button>
     <p id="roomGateMsg" class="text-red-600 text-sm mt-3 text-center"></p>
-    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v45</p>
+    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v46</p>
   </div>
 </div>
 
@@ -595,6 +595,8 @@ function loadEventsList(){
           <div class="text-lg font-bold">${escapeHtml(title)}</div>
           <div class="text-sm text-gray-500">${dateStr} · 참가자 ${(data.today||[]).length}명</div>
         </button>
+        <button onclick="renameEventPrompt('${d.id}', '${escapeAttr(title)}')"
+          class="flex-shrink-0 w-12 bg-blue-100 text-blue-600 rounded-xl text-xl active:bg-blue-200">✏️</button>
         <button onclick="deleteEventPrompt('${d.id}', '${escapeAttr(title)}')"
           class="flex-shrink-0 w-12 bg-red-100 text-red-600 rounded-xl text-xl active:bg-red-200">🗑</button>
       </div>`;
@@ -602,6 +604,26 @@ function loadEventsList(){
   }, err=>{
     console.error(err);
   });
+}
+
+function renameEventPrompt(eventIdToRename, oldTitle){
+  const newTitle = prompt('새 대회 이름을 입력해 주세요.', oldTitle);
+  if(newTitle === null) return;
+  const trimmed = newTitle.trim();
+  if(!trimmed){ alert('이름을 입력해 주세요.'); return; }
+  clubRef.collection('events').doc(eventIdToRename).set({ title: trimmed }, { merge: true })
+    .then(()=>{
+      // 지금 열려있는 대회의 이름을 바꿨다면 헤더 표시도 즉시 갱신
+      if(eventIdToRename === eventId){
+        pendingEventTitle = trimmed;
+        const label = document.getElementById('eventTitleLabel');
+        if(label) label.textContent = trimmed;
+      }
+    })
+    .catch(err=>{
+      console.error(err);
+      alert('이름 변경 중 오류가 발생했습니다: ' + err.message);
+    });
 }
 
 function deleteEventPrompt(eventId, title){
@@ -1305,6 +1327,7 @@ function updateHandicap(i, val){
   handicapDebounce[i] = setTimeout(()=>{
     pushState({ today }).then(()=>{ todayPushPending = false; });
     syncHandicapToMember(today[i].name, today[i].handicap);
+    syncHandicapToCurrentGroups(today[i].name, today[i].handicap);
   }, 400);
 }
 
@@ -1314,6 +1337,7 @@ function toggleHandicapSign(i){
   todayPushPending = true;
   pushState({ today }).then(()=>{ todayPushPending = false; });
   syncHandicapToMember(today[i].name, today[i].handicap);
+  syncHandicapToCurrentGroups(today[i].name, today[i].handicap);
   renderToday();
 }
 
@@ -1327,6 +1351,40 @@ function syncHandicapToMember(name, handicap){
   members[idx] = m;
   pushClubState({ members });
   if(!document.getElementById('tab-members').classList.contains('hidden')) renderMembers();
+}
+
+// 이미 만들어진 조편성 결과(currentGroups)는 today와 별개로 저장된 사본이라,
+// today의 핸디캡을 바꿔도 자동으로 안 바뀝니다. 이 함수가 그 사본도 즉시 같이 갱신해서
+// 조별 평균과 경기결과 계산이 바로 최신 핸디캡을 기준으로 반영되게 합니다.
+function syncHandicapToCurrentGroups(name, handicap){
+  if(!currentGroups) return;
+  let changed = false;
+  currentGroups.forEach(g=>{
+    const p = g.find(x=>x.name===name);
+    if(p && p.handicap !== handicap){ p.handicap = handicap; changed = true; }
+  });
+  if(changed){
+    pushState({ groups: currentGroups.map(g => ({ members: g })) });
+    if(!document.getElementById('tab-groups').classList.contains('hidden')) renderGroups();
+  }
+}
+
+// 여러 명을 한 번에 바꿀 때(일괄 붙여넣기 등) 쓰는 배치 버전 — 저장을 한 번만 합니다.
+function syncHandicapMapToCurrentGroups(nameToHandicap){
+  if(!currentGroups) return;
+  let changed = false;
+  currentGroups.forEach(g=>{
+    g.forEach(p=>{
+      if(Object.prototype.hasOwnProperty.call(nameToHandicap, p.name) && p.handicap !== nameToHandicap[p.name]){
+        p.handicap = nameToHandicap[p.name];
+        changed = true;
+      }
+    });
+  });
+  if(changed){
+    pushState({ groups: currentGroups.map(g => ({ members: g })) });
+    if(!document.getElementById('tab-groups').classList.contains('hidden')) renderGroups();
+  }
 }
 
 /* ===================== 핸디캡 일괄 붙여넣기 ===================== */
@@ -1344,6 +1402,7 @@ function applyHandicapPaste(){
 
   const matched = [];
   const unmatched = [];
+  const changedMap = {}; // 이름 -> 새 핸디캡 (조편성 결과 배치 동기화용)
 
   lines.forEach(line=>{
     // 줄 끝의 +숫자 / -숫자 / 숫자(소수 가능)를 핸디캡으로, 그 앞부분을 이름/아이디로 인식
@@ -1356,6 +1415,7 @@ function applyHandicapPaste(){
       participant.handicap = handicap;
       matched.push(`${label} → ${handicap}`);
       syncHandicapToMember(participant.name, handicap);
+      changedMap[participant.name] = handicap;
     } else {
       unmatched.push(line);
     }
@@ -1363,8 +1423,9 @@ function applyHandicapPaste(){
 
   pushState({ today });
   renderToday();
+  syncHandicapMapToCurrentGroups(changedMap); // 이미 짜놓은 조편성 결과에도 즉시 반영
 
-  let msg = `✅ ${matched.length}명 반영 완료.`;
+  let msg = `✅ ${matched.length}명 반영 완료 (조편성 결과에도 바로 반영됨).`;
   if(unmatched.length>0){
     msg += ` ⚠️ 매칭 안 된 줄(${unmatched.length}개): ${unmatched.join(' / ')} — 아이디/이름 철자를 확인해 주세요.`;
   }
@@ -1672,6 +1733,7 @@ function updateMyHandicap(val){
   myHandicapDebounce = setTimeout(()=>{
     pushState({ today }).then(()=>{ todayPushPending = false; });
     syncHandicapToMember(myPlayerName, today[idx].handicap);
+    syncHandicapToCurrentGroups(myPlayerName, today[idx].handicap);
   }, 400);
 }
 
@@ -1684,6 +1746,7 @@ function toggleMyHandicapSign(){
   todayPushPending = true;
   pushState({ today }).then(()=>{ todayPushPending = false; });
   syncHandicapToMember(myPlayerName, today[idx].handicap);
+  syncHandicapToCurrentGroups(myPlayerName, today[idx].handicap);
   showMyScoreBox();
 }
 
@@ -1796,6 +1859,7 @@ function updateGroupMemberHandicap(name, val){
   groupHandicapDebounce[name] = setTimeout(()=>{
     pushState({ today }).then(()=>{ todayPushPending = false; });
     syncHandicapToMember(name, today[idx].handicap);
+    syncHandicapToCurrentGroups(name, today[idx].handicap);
   }, 400);
 }
 
@@ -1810,6 +1874,7 @@ function toggleGroupMemberHandicapSign(name){
   todayPushPending = true;
   pushState({ today }).then(()=>{ todayPushPending = false; });
   syncHandicapToMember(name, today[idx].handicap);
+  syncHandicapToCurrentGroups(name, today[idx].handicap);
   showGroupScoreList();
 }
 
