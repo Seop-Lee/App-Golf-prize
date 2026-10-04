@@ -37,7 +37,7 @@
       입장하기
     </button>
     <p id="roomGateMsg" class="text-red-600 text-sm mt-3 text-center"></p>
-    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v47</p>
+    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v48</p>
   </div>
 </div>
 
@@ -786,6 +786,22 @@ function computeEventGroupRankingForStats(data){
   return [...hioGroups, ...normalGroups];
 }
 
+// 대회 이름에 "9월 20일", "9월20일-1", "2026년9월20일" 같은 날짜가 들어있으면 그 날짜를 읽어오고,
+// 없으면 fallbackDate(보통 생성일)를 그대로 씁니다. 생성일과 실제 라운드 날짜가 다를 수 있어서,
+// 이름에 적힌 날짜를 우선으로 "이 대회의 날짜"를 확정합니다.
+function parseDateFromTitle(title, fallbackDate){
+  if(!title) return fallbackDate;
+  const mdMatch = title.match(/(\d{1,2})\s*월\s*(\d{1,2})\s*일/);
+  if(!mdMatch) return fallbackDate;
+  const yearMatch = title.match(/(\d{4})\s*년/);
+  const year = yearMatch ? parseInt(yearMatch[1], 10) : fallbackDate.getFullYear();
+  const month = parseInt(mdMatch[1], 10) - 1;
+  const day = parseInt(mdMatch[2], 10);
+  if(month < 0 || month > 11 || day < 1 || day > 31) return fallbackDate;
+  const parsed = new Date(year, month, day, 12, 0, 0); // 정오로 설정해 시간대 경계 문제를 피함
+  return isNaN(parsed.getTime()) ? fallbackDate : parsed;
+}
+
 async function runPeriodStats(){
   const startVal = document.getElementById('statsStart').value;
   const endVal = document.getElementById('statsEnd').value;
@@ -798,14 +814,15 @@ async function runPeriodStats(){
   resultBox.innerHTML = '<p class="text-gray-400 text-center py-4">집계 중...</p>';
 
   try{
+    // 날짜 범위로 서버에서 미리 거르지 않고 클럽의 모든 대회를 가져온 뒤,
+    // 대회 "이름"에 들어있는 날짜를 우선 참조해서 기간에 포함되는지 판단합니다.
+    // (생성한 날짜와 실제 라운드 날짜가 다를 수 있어, 이름의 날짜가 더 정확합니다.)
     const snap = await clubRef.collection('events')
-      .where('createdAt', '>=', startDate)
-      .where('createdAt', '<=', endDate)
       .orderBy('createdAt', 'asc')
       .get();
 
     if(snap.empty){
-      resultBox.innerHTML = '<p class="text-gray-400 text-center py-4">해당 기간에 대회 기록이 없습니다.</p>';
+      resultBox.innerHTML = '<p class="text-gray-400 text-center py-4">클럽에 등록된 대회가 없습니다.</p>';
       return;
     }
 
@@ -818,11 +835,15 @@ async function runPeriodStats(){
     const pairTotalCount = {};      // "이름1|이름2" -> 같은 조 횟수
     const pairWinCount = {};        // "이름1|이름2" -> 같은 조 + 승리조 횟수
     const clubRecords = [];
+    let matchedAny = false;
 
     snap.forEach(doc=>{
       const data = doc.data();
-      const eventDate = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate() : new Date(0);
-      const dateLabel = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate().toLocaleDateString('ko-KR') : '';
+      const createdAtDate = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate() : new Date(0);
+      const eventDate = parseDateFromTitle(data.title, createdAtDate); // 이름의 날짜 우선, 없으면 생성일
+      if(eventDate < startDate || eventDate > endDate) return; // 기간 밖이면 집계에서 제외
+      matchedAny = true;
+      const dateLabel = eventDate.toLocaleDateString('ko-KR');
 
       (data.today||[]).forEach(p=>{
         if(p.id) idByName[p.name] = p.id;
@@ -873,6 +894,11 @@ async function runPeriodStats(){
         }
       });
     });
+
+    if(!matchedAny){
+      resultBox.innerHTML = '<p class="text-gray-400 text-center py-4">해당 기간에 대회 기록이 없습니다.</p>';
+      return;
+    }
 
     clubRecords.sort((a,b)=> a.date - b.date);
 
