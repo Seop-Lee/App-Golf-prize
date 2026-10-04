@@ -37,22 +37,27 @@
       입장하기
     </button>
     <p id="roomGateMsg" class="text-red-600 text-sm mt-3 text-center"></p>
-    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v48</p>
+    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v49</p>
   </div>
 </div>
 
 <!-- ================= 대회 선택 화면 ================= -->
-<div id="eventGate" class="fixed inset-0 bg-green-900 z-40 hidden flex items-center justify-center p-6">
-  <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl max-h-[90vh] overflow-y-auto">
+<div id="eventGate" class="fixed inset-0 bg-green-900 z-40 hidden flex items-start justify-center p-6 pt-14 overflow-y-auto">
+  <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl my-6">
     <div class="flex justify-between items-center mb-2">
-      <h1 class="text-2xl font-extrabold">🏆 대회 선택</h1>
+      <h1 class="text-2xl font-extrabold">🏠 홈</h1>
       <button onclick="leaveRoom()" class="text-sm bg-gray-100 text-gray-700 px-2 py-1 rounded-lg font-bold">클럽 나가기</button>
     </div>
     <p class="text-base text-gray-600 mb-4">클럽: <b id="clubCodeLabel2"></b></p>
 
-    <button onclick="openStatsPanel()" class="btn-secondary w-full bg-indigo-700 text-white py-3 rounded-xl active:bg-indigo-900 mb-4">
-      📊 통계
-    </button>
+    <div class="grid grid-cols-2 gap-2 mb-4">
+      <button onclick="openClubStatsPanel()" class="btn-secondary bg-indigo-700 text-white py-3 rounded-xl active:bg-indigo-900">
+        📊 클럽통계
+      </button>
+      <button onclick="openMemberStatsPanel()" class="btn-secondary bg-purple-700 text-white py-3 rounded-xl active:bg-purple-900">
+        👤 회원별 통계
+      </button>
+    </div>
 
     <div class="bg-green-50 border-2 border-green-300 rounded-xl p-3 mb-4">
       <p class="text-base font-bold mb-2">➕ 새 대회 시작</p>
@@ -62,33 +67,82 @@
       <p id="createEventMsg" class="text-sm mt-2 text-center"></p>
     </div>
 
-    <p class="text-base font-bold mb-2">📋 지난 대회 목록</p>
-    <div id="eventList" class="space-y-2"></div>
+    <p class="text-base font-bold mb-2">📋 지난 대회 목록 <span class="text-sm text-gray-400 font-normal">(최근 3개, 더 보려면 아래로 스크롤)</span></p>
+    <div id="eventList" class="space-y-2 max-h-56 overflow-y-auto pr-1"></div>
   </div>
 </div>
 
-<!-- ================= 기간별 집계 화면 ================= -->
-<div id="statsPanel" class="fixed inset-0 bg-green-900 z-40 hidden flex items-center justify-center p-6">
-  <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl max-h-[90vh] overflow-y-auto">
+<!-- ================= 클럽통계 화면 ================= -->
+<div id="clubStatsPanel" class="fixed inset-0 bg-green-900 z-40 hidden flex items-start justify-center p-6 pt-14 overflow-y-auto">
+  <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl my-6">
     <div class="flex justify-between items-center mb-3">
-      <h1 class="text-2xl font-extrabold">📊 기간별 집계</h1>
-      <button onclick="closeStatsPanel()" class="text-sm bg-gray-100 text-gray-700 px-2 py-1 rounded-lg font-bold">닫기</button>
+      <h1 class="text-xl font-extrabold">📊 클럽통계</h1>
+      <button onclick="closeClubStatsPanel()" class="text-sm bg-gray-100 text-gray-700 px-2 py-1 rounded-lg font-bold">닫기</button>
     </div>
-    <p class="text-sm text-gray-500 mb-3">기간 안의 모든 대회를 합산해 상금왕(총 상금)과 향상왕(핸디캡이 가장 많이 낮아진 회원)을 계산합니다.</p>
+    <p class="text-sm text-gray-500 mb-3">기간을 고르고 "집계하기"를 누르면 클럽 전체 순위·기록을 모아 보여줍니다.</p>
 
     <div class="grid grid-cols-2 gap-2 mb-2">
       <div>
-        <label class="text-sm text-gray-600 block mb-1">시작일</label>
-        <input id="statsStart" type="date" class="w-full border-2 border-gray-300 rounded-lg px-2 py-2 text-base outline-none">
+        <label class="text-sm text-gray-600 block mb-1">시작</label>
+        <div class="flex gap-1">
+          <select id="clubStatsStartYear" class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-1 py-2 text-base outline-none"></select>
+          <select id="clubStatsStartMonth" class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-1 py-2 text-base outline-none"></select>
+        </div>
       </div>
       <div>
-        <label class="text-sm text-gray-600 block mb-1">종료일</label>
-        <input id="statsEnd" type="date" class="w-full border-2 border-gray-300 rounded-lg px-2 py-2 text-base outline-none">
+        <label class="text-sm text-gray-600 block mb-1">종료</label>
+        <div class="flex gap-1">
+          <select id="clubStatsEndYear" class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-1 py-2 text-base outline-none"></select>
+          <select id="clubStatsEndMonth" class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-1 py-2 text-base outline-none"></select>
+        </div>
       </div>
     </div>
-    <button onclick="runPeriodStats()" class="btn-secondary w-full bg-indigo-700 text-white py-3 rounded-xl active:bg-indigo-900 mb-4">집계하기</button>
+    <div class="grid grid-cols-4 gap-1 mb-3">
+      <button onclick="setStatsQuickRange('club',1)" class="text-sm bg-gray-100 text-gray-700 py-2 rounded-lg font-bold active:bg-gray-200">최근1개월</button>
+      <button onclick="setStatsQuickRange('club',3)" class="text-sm bg-gray-100 text-gray-700 py-2 rounded-lg font-bold active:bg-gray-200">최근3개월</button>
+      <button onclick="setStatsQuickRange('club',6)" class="text-sm bg-gray-100 text-gray-700 py-2 rounded-lg font-bold active:bg-gray-200">최근6개월</button>
+      <button onclick="setStatsQuickRange('club',12)" class="text-sm bg-gray-100 text-gray-700 py-2 rounded-lg font-bold active:bg-gray-200">최근1년</button>
+    </div>
+    <button onclick="runClubStats()" class="btn-secondary w-full bg-indigo-700 text-white py-3 rounded-xl active:bg-indigo-900 mb-4">집계하기</button>
 
-    <div id="statsResult"></div>
+    <div id="clubStatsResult"></div>
+  </div>
+</div>
+
+<!-- ================= 회원별통계 화면 ================= -->
+<div id="memberStatsPanel" class="fixed inset-0 bg-green-900 z-40 hidden flex items-start justify-center p-6 pt-14 overflow-y-auto">
+  <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl my-6">
+    <div class="flex justify-between items-center mb-3">
+      <h1 class="text-xl font-extrabold">👤 회원별 통계</h1>
+      <button onclick="closeMemberStatsPanel()" class="text-sm bg-gray-100 text-gray-700 px-2 py-1 rounded-lg font-bold">닫기</button>
+    </div>
+    <p class="text-sm text-gray-500 mb-3">기간을 고르고 집계한 뒤, 회원을 선택하면 그 분의 개인 기록을 볼 수 있습니다.</p>
+
+    <div class="grid grid-cols-2 gap-2 mb-2">
+      <div>
+        <label class="text-sm text-gray-600 block mb-1">시작</label>
+        <div class="flex gap-1">
+          <select id="memberStatsStartYear" class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-1 py-2 text-base outline-none"></select>
+          <select id="memberStatsStartMonth" class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-1 py-2 text-base outline-none"></select>
+        </div>
+      </div>
+      <div>
+        <label class="text-sm text-gray-600 block mb-1">종료</label>
+        <div class="flex gap-1">
+          <select id="memberStatsEndYear" class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-1 py-2 text-base outline-none"></select>
+          <select id="memberStatsEndMonth" class="flex-1 min-w-0 border-2 border-gray-300 rounded-lg px-1 py-2 text-base outline-none"></select>
+        </div>
+      </div>
+    </div>
+    <div class="grid grid-cols-4 gap-1 mb-3">
+      <button onclick="setStatsQuickRange('member',1)" class="text-sm bg-gray-100 text-gray-700 py-2 rounded-lg font-bold active:bg-gray-200">최근1개월</button>
+      <button onclick="setStatsQuickRange('member',3)" class="text-sm bg-gray-100 text-gray-700 py-2 rounded-lg font-bold active:bg-gray-200">최근3개월</button>
+      <button onclick="setStatsQuickRange('member',6)" class="text-sm bg-gray-100 text-gray-700 py-2 rounded-lg font-bold active:bg-gray-200">최근6개월</button>
+      <button onclick="setStatsQuickRange('member',12)" class="text-sm bg-gray-100 text-gray-700 py-2 rounded-lg font-bold active:bg-gray-200">최근1년</button>
+    </div>
+    <button onclick="runMemberStats()" class="btn-secondary w-full bg-purple-700 text-white py-3 rounded-xl active:bg-purple-900 mb-4">집계하기</button>
+
+    <div id="memberStatsResult"></div>
   </div>
 </div>
 
@@ -140,6 +194,10 @@
     <div class="flex justify-center items-center gap-2 mt-1">
       <span id="modeBadge" class="text-sm bg-yellow-400 text-gray-900 px-2 py-1 rounded-lg font-bold">🔑 총무 모드</span>
       <button onclick="switchMode()" class="text-sm bg-white text-green-800 px-2 py-1 rounded-lg font-bold">모드 변경</button>
+    </div>
+    <div class="flex justify-center items-center gap-2 mt-2">
+      <button onclick="changeEvent()" class="text-sm bg-blue-100 text-blue-800 px-3 py-2 rounded-lg font-bold">🏠 홈으로</button>
+      <button onclick="leaveRoom()" class="text-sm bg-red-100 text-red-700 px-3 py-2 rounded-lg font-bold">🚪 클럽 나가기</button>
     </div>
   </header>
 
@@ -643,16 +701,69 @@ function deleteEventPrompt(eventId, title){
 }
 
 /* ===================== 기간별 집계 (상금왕 / 향상왕) ===================== */
-function openStatsPanel(){
-  const today9 = new Date();
-  const yyyy = today9.getFullYear();
-  document.getElementById('statsStart').value = `${yyyy}-01-01`;
-  document.getElementById('statsEnd').value = today9.toISOString().slice(0,10);
-  document.getElementById('statsResult').innerHTML = '';
-  document.getElementById('statsPanel').classList.remove('hidden');
+// 연/월 선택 select를 채웁니다. 기본 시작은 2026년 9월, 기본 종료는 이번 달.
+function populateStatsYearMonthSelects(prefix){
+  const now = new Date();
+  const curYear = now.getFullYear();
+  const years = [];
+  for(let y=2025; y<=curYear+1; y++) years.push(y);
+  const yearOpts = years.map(y=>`<option value="${y}">${y}년</option>`).join('');
+  const monthOpts = Array.from({length:12},(_,i)=>i+1).map(m=>`<option value="${m}">${m}월</option>`).join('');
+
+  const sy = document.getElementById(prefix+'StatsStartYear');
+  const sm = document.getElementById(prefix+'StatsStartMonth');
+  const ey = document.getElementById(prefix+'StatsEndYear');
+  const em = document.getElementById(prefix+'StatsEndMonth');
+  if(sy) sy.innerHTML = yearOpts;
+  if(sm) sm.innerHTML = monthOpts;
+  if(ey) ey.innerHTML = yearOpts;
+  if(em) em.innerHTML = monthOpts;
+
+  if(sy) sy.value = 2026;
+  if(sm) sm.value = 9;
+  if(ey) ey.value = curYear;
+  if(em) em.value = now.getMonth()+1;
 }
-function closeStatsPanel(){
-  document.getElementById('statsPanel').classList.add('hidden');
+
+// 연/월 select 값으로부터 실제 시작일(그 달 1일 0시) ~ 종료일(그 달 마지막날 23:59)을 만듭니다.
+function getStatsRangeFromSelects(prefix){
+  const sy = parseInt(document.getElementById(prefix+'StatsStartYear').value, 10);
+  const sm = parseInt(document.getElementById(prefix+'StatsStartMonth').value, 10);
+  const ey = parseInt(document.getElementById(prefix+'StatsEndYear').value, 10);
+  const em = parseInt(document.getElementById(prefix+'StatsEndMonth').value, 10);
+  const startDate = new Date(sy, sm-1, 1, 0, 0, 0);
+  const endDate = new Date(ey, em, 0, 23, 59, 59); // 다음달 0일 = 이번달 마지막날
+  return { startDate, endDate };
+}
+
+// "최근 N개월" 버튼: 이번 달을 종료로, N개월 전을 시작으로 select 값을 바꿉니다.
+function setStatsQuickRange(prefix, months){
+  const now = new Date();
+  const endY = now.getFullYear(), endM = now.getMonth()+1;
+  let startY = endY, startM = endM - months + 1;
+  while(startM <= 0){ startM += 12; startY -= 1; }
+  document.getElementById(prefix+'StatsStartYear').value = startY;
+  document.getElementById(prefix+'StatsStartMonth').value = startM;
+  document.getElementById(prefix+'StatsEndYear').value = endY;
+  document.getElementById(prefix+'StatsEndMonth').value = endM;
+}
+
+function openClubStatsPanel(){
+  populateStatsYearMonthSelects('club');
+  document.getElementById('clubStatsResult').innerHTML = '';
+  document.getElementById('clubStatsPanel').classList.remove('hidden');
+}
+function closeClubStatsPanel(){
+  document.getElementById('clubStatsPanel').classList.add('hidden');
+}
+
+function openMemberStatsPanel(){
+  populateStatsYearMonthSelects('member');
+  document.getElementById('memberStatsResult').innerHTML = '';
+  document.getElementById('memberStatsPanel').classList.remove('hidden');
+}
+function closeMemberStatsPanel(){
+  document.getElementById('memberStatsPanel').classList.add('hidden');
 }
 
 /* 저장된 대회(data) 하나를 받아 회원별 상금 합계를 계산 (실시간 정산 로직과 동일한 규칙, 화면 렌더링 없이 계산만) */
@@ -802,179 +913,308 @@ function parseDateFromTitle(title, fallbackDate){
   return isNaN(parsed.getTime()) ? fallbackDate : parsed;
 }
 
-async function runPeriodStats(){
-  const startVal = document.getElementById('statsStart').value;
-  const endVal = document.getElementById('statsEnd').value;
-  const resultBox = document.getElementById('statsResult');
-  if(!startVal || !endVal){ alert('시작일과 종료일을 선택해 주세요.'); return; }
-  const startDate = new Date(startVal + 'T00:00:00');
-  const endDate = new Date(endVal + 'T23:59:59');
-  if(startDate > endDate){ alert('시작일이 종료일보다 늦을 수 없습니다.'); return; }
+// 지정한 기간의 모든 대회 데이터를 모아 클럽통계·회원별통계에서 공통으로 쓰는 집계 결과를 만듭니다.
+// 대회 기록이 하나도 없으면 null을 반환합니다.
+async function gatherStatsData(startDate, endDate){
+  const snap = await clubRef.collection('events').orderBy('createdAt', 'asc').get();
+  if(snap.empty) return null;
 
-  resultBox.innerHTML = '<p class="text-gray-400 text-center py-4">집계 중...</p>';
+  const idByName = {};
+  const handicapSeries = {};      // name -> [{date, handicap}]
+  const grossSeries = {};         // name -> [gross타수, ...]
+  const netSeries = {};           // name -> [net타수, ...]
+  const groupedCount = {};        // name -> 조편성에 포함된 횟수
+  const winCount = {};            // name -> 승리조(1,2위) 포함 횟수
+  const pairTotalCount = {};      // "이름1|이름2" -> 같은 조 횟수
+  const pairWinCount = {};        // "이름1|이름2" -> 같은 조 + 승리조 횟수
+  const clubRecords = [];
+  const memberEventDetails = {};  // name -> [{date,dateLabel,title,handicap,gross,net,groupmates,won}]
+  let matchedAny = false;
+  let eventCount = 0;
 
-  try{
-    // 날짜 범위로 서버에서 미리 거르지 않고 클럽의 모든 대회를 가져온 뒤,
-    // 대회 "이름"에 들어있는 날짜를 우선 참조해서 기간에 포함되는지 판단합니다.
-    // (생성한 날짜와 실제 라운드 날짜가 다를 수 있어, 이름의 날짜가 더 정확합니다.)
-    const snap = await clubRef.collection('events')
-      .orderBy('createdAt', 'asc')
-      .get();
+  snap.forEach(doc=>{
+    const data = doc.data();
+    const createdAtDate = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate() : new Date(0);
+    const eventDate = parseDateFromTitle(data.title, createdAtDate); // 이름의 날짜 우선, 없으면 생성일
+    if(eventDate < startDate || eventDate > endDate) return; // 기간 밖이면 집계에서 제외
+    matchedAny = true;
+    eventCount++;
+    const dateLabel = eventDate.toLocaleDateString('ko-KR');
+    const title = data.title || '이름없는 대회';
 
-    if(snap.empty){
-      resultBox.innerHTML = '<p class="text-gray-400 text-center py-4">클럽에 등록된 대회가 없습니다.</p>';
-      return;
+    (data.today||[]).forEach(p=>{
+      if(p.id) idByName[p.name] = p.id;
+      if(!handicapSeries[p.name]) handicapSeries[p.name] = [];
+      handicapSeries[p.name].push({ date: eventDate, handicap: p.handicap });
+    });
+
+    const eventScores = data.scores || {};
+    const eventScoreIsRaw = data.scoreIsRaw || {};
+    const eventRanking = (data.today||[])
+      .filter(p => eventScores[p.name] != null)
+      .map(p => {
+        const h = p.handicap || 0;
+        let net;
+        if(eventScoreIsRaw[p.name]) net = h > 0 ? eventScores[p.name] - h : eventScores[p.name];
+        else net = h < 0 ? eventScores[p.name] + h : eventScores[p.name];
+        if(!grossSeries[p.name]) grossSeries[p.name] = [];
+        if(!netSeries[p.name]) netSeries[p.name] = [];
+        grossSeries[p.name].push(eventScores[p.name]);
+        netSeries[p.name].push(net);
+        return { name: p.name, id: p.id, net, gross: eventScores[p.name] };
+      })
+      .sort((a,b)=> a.net - b.net);
+
+    const eventGroups = data.groups ? data.groups.map(g => (g.members||g).map(p=>p.id||p.name)) : null;
+    if(eventRanking.length > 0 || eventGroups){
+      clubRecords.push({ title, dateLabel, date: eventDate, ranking: eventRanking, groups: eventGroups });
     }
 
-    const idByName = {};
-    const handicapSeries = {};      // name -> [{date, handicap}]
-    const grossSeries = {};         // name -> [gross타수, ...]
-    const netSeries = {};           // name -> [net타수, ...]
-    const groupedCount = {};        // name -> 조편성에 포함된 횟수
-    const winCount = {};            // name -> 승리조(1,2위) 포함 횟수
-    const pairTotalCount = {};      // "이름1|이름2" -> 같은 조 횟수
-    const pairWinCount = {};        // "이름1|이름2" -> 같은 조 + 승리조 횟수
-    const clubRecords = [];
-    let matchedAny = false;
+    // 조편성/승리조/짝꿍/개인별 상세 집계
+    const ranking = computeEventGroupRankingForStats(data);
+    const winningGroups = ranking.slice(0, Math.min(2, ranking.length));
+    const winningGroupIdx = new Set(winningGroups.map(g=>g.groupIndex));
 
-    snap.forEach(doc=>{
-      const data = doc.data();
-      const createdAtDate = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate() : new Date(0);
-      const eventDate = parseDateFromTitle(data.title, createdAtDate); // 이름의 날짜 우선, 없으면 생성일
-      if(eventDate < startDate || eventDate > endDate) return; // 기간 밖이면 집계에서 제외
-      matchedAny = true;
-      const dateLabel = eventDate.toLocaleDateString('ko-KR');
-
-      (data.today||[]).forEach(p=>{
-        if(p.id) idByName[p.name] = p.id;
-        if(!handicapSeries[p.name]) handicapSeries[p.name] = [];
-        handicapSeries[p.name].push({ date: eventDate, handicap: p.handicap });
+    ranking.forEach(gr=>{
+      const membersArr = gr.members || [];
+      const names = membersArr.map(p=>p.name);
+      const isWin = winningGroupIdx.has(gr.groupIndex);
+      names.forEach(name=>{
+        groupedCount[name] = (groupedCount[name]||0) + 1;
+        if(isWin) winCount[name] = (winCount[name]||0) + 1;
       });
-
-      const eventScores = data.scores || {};
-      const eventScoreIsRaw = data.scoreIsRaw || {};
-      const eventRanking = (data.today||[])
-        .filter(p => eventScores[p.name] != null)
-        .map(p => {
-          const h = p.handicap || 0;
-          let net;
-          if(eventScoreIsRaw[p.name]) net = h > 0 ? eventScores[p.name] - h : eventScores[p.name];
-          else net = h < 0 ? eventScores[p.name] + h : eventScores[p.name];
-          if(!grossSeries[p.name]) grossSeries[p.name] = [];
-          if(!netSeries[p.name]) netSeries[p.name] = [];
-          grossSeries[p.name].push(eventScores[p.name]);
-          netSeries[p.name].push(net);
-          return { name: p.name, id: p.id, net, gross: eventScores[p.name] };
-        })
-        .sort((a,b)=> a.net - b.net);
-
-      const eventGroups = data.groups ? data.groups.map(g => (g.members||g).map(p=>p.id||p.name)) : null;
-      if(eventRanking.length > 0 || eventGroups){
-        clubRecords.push({ title: data.title || '이름없는 대회', dateLabel, date: eventDate, ranking: eventRanking, groups: eventGroups });
-      }
-
-      // 조편성/승리조/짝꿍 집계
-      const ranking = computeEventGroupRankingForStats(data);
-      const winningGroups = ranking.slice(0, Math.min(2, ranking.length));
-      const winningGroupIdx = new Set(winningGroups.map(g=>g.groupIndex));
-
-      ranking.forEach(gr=>{
-        const members = (gr.members||[]).map(p=>p.name);
-        const isWin = winningGroupIdx.has(gr.groupIndex);
-        members.forEach(name=>{
-          groupedCount[name] = (groupedCount[name]||0) + 1;
-          if(isWin) winCount[name] = (winCount[name]||0) + 1;
-        });
-        for(let i=0;i<members.length;i++){
-          for(let j=i+1;j<members.length;j++){
-            const key = [members[i], members[j]].sort().join('|');
-            pairTotalCount[key] = (pairTotalCount[key]||0) + 1;
-            if(isWin) pairWinCount[key] = (pairWinCount[key]||0) + 1;
-          }
+      for(let i=0;i<names.length;i++){
+        for(let j=i+1;j<names.length;j++){
+          const key = [names[i], names[j]].sort().join('|');
+          pairTotalCount[key] = (pairTotalCount[key]||0) + 1;
+          if(isWin) pairWinCount[key] = (pairWinCount[key]||0) + 1;
         }
+      }
+      membersArr.forEach(p=>{
+        if(!memberEventDetails[p.name]) memberEventDetails[p.name] = [];
+        const gross = eventScores[p.name] != null ? eventScores[p.name] : null;
+        const h = p.handicap || 0;
+        let net = null;
+        if(gross != null){
+          if(eventScoreIsRaw[p.name]) net = h > 0 ? gross - h : gross;
+          else net = h < 0 ? gross + h : gross;
+        }
+        memberEventDetails[p.name].push({
+          date: eventDate, dateLabel, title,
+          handicap: h, gross, net,
+          groupmates: names.filter(n=>n!==p.name),
+          won: isWin
+        });
       });
     });
+  });
 
-    if(!matchedAny){
-      resultBox.innerHTML = '<p class="text-gray-400 text-center py-4">해당 기간에 대회 기록이 없습니다.</p>';
-      return;
-    }
+  if(!matchedAny) return null;
 
-    clubRecords.sort((a,b)=> a.date - b.date);
+  clubRecords.sort((a,b)=> a.date - b.date);
+  Object.keys(memberEventDetails).forEach(name=>{
+    memberEventDetails[name].sort((a,b)=> a.date - b.date);
+  });
 
-    // ① 회원별 통계 (승리조 포함횟수/확률)
-    const memberStats = Object.keys(groupedCount).map(name=>{
-      const played = groupedCount[name];
-      const wins = winCount[name] || 0;
-      return { name, id: idByName[name], played, wins, rate: played>0 ? wins/played*100 : 0 };
-    }).sort((a,b)=> b.rate - a.rate);
+  // ① 회원별 통계 (승리조 포함횟수/확률)
+  const memberStats = Object.keys(groupedCount).map(name=>{
+    const played = groupedCount[name];
+    const wins = winCount[name] || 0;
+    return { name, id: idByName[name], played, wins, rate: played>0 ? wins/played*100 : 0 };
+  }).sort((a,b)=> b.rate - a.rate);
 
-    // ② 내가 젤 잘나가 Top5 (승률 높은 순)
-    const topWinners = [...memberStats].sort((a,b)=> b.rate - a.rate || b.wins - a.wins).slice(0,5);
-    // ③ 내가 젤 안나가 Top5 (승률 낮은 순)
-    const bottomWinners = [...memberStats].sort((a,b)=> a.rate - b.rate || a.wins - b.wins).slice(0,5);
+  // ② 내가 젤 잘나가 Top5 (승률 높은 순)
+  const topWinners = [...memberStats].sort((a,b)=> b.rate - a.rate || b.wins - a.wins).slice(0,5);
+  // ③ 내가 젤 안나가 Top5 (승률 낮은 순)
+  const bottomWinners = [...memberStats].sort((a,b)=> a.rate - b.rate || a.wins - b.wins).slice(0,5);
 
-    // ④ 인연 Top3
-    const pairTop3 = Object.keys(pairTotalCount)
-      .map(key=>{ const [n1,n2]=key.split('|'); return { n1, n2, id1: idByName[n1], id2: idByName[n2], count: pairTotalCount[key] }; })
-      .sort((a,b)=> b.count - a.count).slice(0,3);
+  // ④ 인연 Top3
+  const pairTop3 = Object.keys(pairTotalCount)
+    .map(key=>{ const [n1,n2]=key.split('|'); return { n1, n2, id1: idByName[n1], id2: idByName[n2], count: pairTotalCount[key] }; })
+    .sort((a,b)=> b.count - a.count).slice(0,3);
 
-    // ⑤⑥ 짝꿍 승률
-    const pairStats = Object.keys(pairTotalCount).map(key=>{
-      const [n1,n2] = key.split('|');
-      const total = pairTotalCount[key];
-      const wins = pairWinCount[key] || 0;
-      return { n1, n2, id1: idByName[n1], id2: idByName[n2], total, wins, rate: total>0 ? wins/total*100 : 0 };
-    });
-    const bestDuo = [...pairStats].sort((a,b)=> b.rate - a.rate || b.wins - a.wins).slice(0,5);
-    const worstDuo = [...pairStats].sort((a,b)=> a.rate - b.rate || a.wins - b.wins).slice(0,5);
+  // ⑤⑥ 짝꿍 승률 (전체 조합)
+  const pairStatsAll = Object.keys(pairTotalCount).map(key=>{
+    const [n1,n2] = key.split('|');
+    const total = pairTotalCount[key];
+    const wins = pairWinCount[key] || 0;
+    return { n1, n2, id1: idByName[n1], id2: idByName[n2], total, wins, rate: total>0 ? wins/total*100 : 0 };
+  });
+  const bestDuo = [...pairStatsAll].sort((a,b)=> b.rate - a.rate || b.wins - a.wins).slice(0,5);
+  const worstDuo = [...pairStatsAll].sort((a,b)=> a.rate - b.rate || a.wins - b.wins).slice(0,5);
 
-    // ⑦ 핸디캡왕 Top5 (핸디적용 평균 낮은 순)
-    const handicapKing = Object.keys(netSeries).map(name=>{
-      const series = netSeries[name];
-      const avgNet = series.reduce((s,x)=>s+x,0)/series.length;
-      const hcSeries = (handicapSeries[name]||[]).map(x=>x.handicap);
-      const avgHc = hcSeries.length ? hcSeries.reduce((s,x)=>s+x,0)/hcSeries.length : 0;
-      return { name, id: idByName[name], avgNet, avgHc, count: series.length };
-    }).sort((a,b)=> a.avgNet - b.avgNet).slice(0,5);
+  // ⑦ 핸디캡왕 Top5 (핸디적용 평균 낮은 순)
+  const handicapKing = Object.keys(netSeries).map(name=>{
+    const series = netSeries[name];
+    const avgNet = series.reduce((s,x)=>s+x,0)/series.length;
+    const hcSeries = (handicapSeries[name]||[]).map(x=>x.handicap);
+    const avgHc = hcSeries.length ? hcSeries.reduce((s,x)=>s+x,0)/hcSeries.length : 0;
+    return { name, id: idByName[name], avgNet, avgHc, count: series.length };
+  }).sort((a,b)=> a.avgNet - b.avgNet).slice(0,5);
 
-    // ⑧ 일스클럽 선수선발 Top5 (핸디미적용 평균 낮은 순)
-    const topPlayer = Object.keys(grossSeries).map(name=>{
-      const series = grossSeries[name];
-      const avgGross = series.reduce((s,x)=>s+x,0)/series.length;
-      const hcSeries = (handicapSeries[name]||[]).map(x=>x.handicap);
-      const avgHc = hcSeries.length ? hcSeries.reduce((s,x)=>s+x,0)/hcSeries.length : 0;
-      return { name, id: idByName[name], avgGross, avgHc, count: series.length };
-    }).sort((a,b)=> a.avgGross - b.avgGross).slice(0,5);
+  // ⑧ 일스클럽 선수선발 Top5 (핸디미적용 평균 낮은 순)
+  const topPlayer = Object.keys(grossSeries).map(name=>{
+    const series = grossSeries[name];
+    const avgGross = series.reduce((s,x)=>s+x,0)/series.length;
+    const hcSeries = (handicapSeries[name]||[]).map(x=>x.handicap);
+    const avgHc = hcSeries.length ? hcSeries.reduce((s,x)=>s+x,0)/hcSeries.length : 0;
+    return { name, id: idByName[name], avgGross, avgHc, count: series.length };
+  }).sort((a,b)=> a.avgGross - b.avgGross).slice(0,5);
 
-    // ⑨⑩ 기복이/꾸준이 (총타수 최고-최저 폭)
-    const rangeStats = Object.keys(grossSeries).filter(name=>grossSeries[name].length>=2).map(name=>{
-      const series = grossSeries[name];
-      const max = Math.max(...series), min = Math.min(...series);
-      return { name, id: idByName[name], range: max-min, max, min, count: series.length };
-    });
-    const upDownKing = [...rangeStats].sort((a,b)=> b.range - a.range).slice(0,5);
-    const steadyKing = [...rangeStats].sort((a,b)=> a.range - b.range).slice(0,5);
+  // ⑨⑩ 기복이/꾸준이 (총타수 최고-최저 폭)
+  const rangeStats = Object.keys(grossSeries).filter(name=>grossSeries[name].length>=2).map(name=>{
+    const series = grossSeries[name];
+    const max = Math.max(...series), min = Math.min(...series);
+    return { name, id: idByName[name], range: max-min, max, min, count: series.length };
+  });
+  const upDownKing = [...rangeStats].sort((a,b)=> b.range - a.range).slice(0,5);
+  const steadyKing = [...rangeStats].sort((a,b)=> a.range - b.range).slice(0,5);
 
-    // ⑪ 쑥쑥이 Top5 (핸디캡 감소량, 기간 내 첫 대회 → 마지막 대회)
-    const improveTop5 = Object.keys(handicapSeries).map(name=>{
-      const series = handicapSeries[name].slice().sort((a,b)=> a.date - b.date);
-      if(series.length < 2) return null;
-      const first = series[0].handicap, last = series[series.length-1].handicap;
-      return { name, id: idByName[name], first, last, improvement: first - last, count: series.length };
-    }).filter(x=>x).sort((a,b)=> b.improvement - a.improvement).slice(0,5);
+  // ⑪ 쑥쑥이 Top5 (핸디캡 감소량, 기간 내 첫 대회 → 마지막 대회)
+  const improveTop5 = Object.keys(handicapSeries).map(name=>{
+    const series = handicapSeries[name].slice().sort((a,b)=> a.date - b.date);
+    if(series.length < 2) return null;
+    const first = series[0].handicap, last = series[series.length-1].handicap;
+    return { name, id: idByName[name], first, last, improvement: first - last, count: series.length };
+  }).filter(x=>x).sort((a,b)=> b.improvement - a.improvement).slice(0,5);
 
-    const statsData = {
-      eventCount: snap.size, clubRecords, memberStats, topWinners, bottomWinners,
-      pairTop3, bestDuo, worstDuo, handicapKing, topPlayer, upDownKing, steadyKing, improveTop5
-    };
-    lastStatsData = statsData;
-    renderStatsResult(statsData);
+  return {
+    eventCount, clubRecords, memberStats, topWinners, bottomWinners,
+    pairTop3, bestDuo, worstDuo, handicapKing, topPlayer, upDownKing, steadyKing, improveTop5,
+    memberEventDetails, idByName, pairStatsAll
+  };
+}
+
+async function runClubStats(){
+  const { startDate, endDate } = getStatsRangeFromSelects('club');
+  const resultBox = document.getElementById('clubStatsResult');
+  if(startDate > endDate){ alert('시작이 종료보다 늦을 수 없습니다.'); return; }
+  resultBox.innerHTML = '<p class="text-gray-400 text-center py-4">집계 중...</p>';
+  try{
+    const data = await gatherStatsData(startDate, endDate);
+    if(!data){ resultBox.innerHTML = '<p class="text-gray-400 text-center py-4">해당 기간에 대회 기록이 없습니다.</p>'; return; }
+    lastStatsData = data;
+    renderStatsResult(data);
   } catch(err){
     console.error(err);
     resultBox.innerHTML = `<p class="text-red-600 text-center py-4">집계 중 오류: ${err.message}</p>`;
   }
 }
+
+let lastMemberStatsData = null;
+let selectedMemberStatsName = null;
+
+async function runMemberStats(){
+  const { startDate, endDate } = getStatsRangeFromSelects('member');
+  const resultBox = document.getElementById('memberStatsResult');
+  if(startDate > endDate){ alert('시작이 종료보다 늦을 수 없습니다.'); return; }
+  resultBox.innerHTML = '<p class="text-gray-400 text-center py-4">집계 중...</p>';
+  try{
+    const data = await gatherStatsData(startDate, endDate);
+    if(!data){ resultBox.innerHTML = '<p class="text-gray-400 text-center py-4">해당 기간에 대회 기록이 없습니다.</p>'; return; }
+    lastMemberStatsData = data;
+    selectedMemberStatsName = null;
+    renderMemberStatsSelector(data);
+  } catch(err){
+    console.error(err);
+    resultBox.innerHTML = `<p class="text-red-600 text-center py-4">집계 중 오류: ${err.message}</p>`;
+  }
+}
+
+function renderMemberStatsSelector(data){
+  const names = Object.keys(data.memberEventDetails).sort((a,b)=>{
+    const la = data.idByName[a] || a, lb = data.idByName[b] || b;
+    return la.localeCompare(lb, 'ko');
+  });
+  const resultBox = document.getElementById('memberStatsResult');
+  resultBox.innerHTML = `
+    <label class="text-base text-gray-600 block mb-1">회원 선택</label>
+    <select id="memberStatsSelect" onchange="onMemberStatsSelect(this.value)"
+      class="w-full border-2 border-gray-300 rounded-xl px-3 py-3 text-lg mb-4 outline-none">
+      <option value="">-- 회원을 선택하세요 --</option>
+      ${names.map(n=>`<option value="${escapeAttr(n)}">${escapeHtml(data.idByName[n]||n)}</option>`).join('')}
+    </select>
+    <div id="memberStatsDetail"></div>
+  `;
+}
+
+function onMemberStatsSelect(name){
+  selectedMemberStatsName = name || null;
+  renderMemberStatsDetail();
+}
+
+function renderMemberStatsDetail(){
+  const detailBox = document.getElementById('memberStatsDetail');
+  if(!detailBox) return;
+  const data = lastMemberStatsData;
+  const name = selectedMemberStatsName;
+  if(!data || !name){ detailBox.innerHTML = ''; return; }
+
+  const events = data.memberEventDetails[name] || [];
+  const label = data.idByName[name] || name;
+  const scoredEvents = events.filter(e=>e.gross!=null);
+  const grossList = scoredEvents.map(e=>e.gross);
+  const handicapList = events.map(e=>e.handicap);
+  const winCount = events.filter(e=>e.won).length;
+  const winRate = events.length>0 ? (winCount/events.length*100) : 0;
+
+  const grossRange = grossList.length>=2 ? (Math.max(...grossList)-Math.min(...grossList)) : null;
+  const hcRange = handicapList.length>=2 ? (Math.max(...handicapList)-Math.min(...handicapList)) : null;
+
+  // 가장 많이 같은 조(인연)
+  const partnerCount = {};
+  events.forEach(e=> e.groupmates.forEach(g=>{ partnerCount[g] = (partnerCount[g]||0)+1; }));
+  const topPartner = Object.keys(partnerCount).sort((a,b)=>partnerCount[b]-partnerCount[a])[0];
+
+  // 이 회원이 낀 짝꿍 승률 (환상의/환장의)
+  const myPairs = data.pairStatsAll
+    .filter(p=> p.n1===name || p.n2===name)
+    .map(p=>{
+      const partnerName = p.n1===name ? p.n2 : p.n1;
+      const partnerLabel = p.n1===name ? (p.id2||p.n2) : (p.id1||p.n1);
+      return { partnerLabel, total: p.total, wins: p.wins, rate: p.rate };
+    });
+  const bestPair = myPairs.length ? [...myPairs].sort((a,b)=> b.rate-a.rate || b.wins-a.wins)[0] : null;
+  const worstPair = myPairs.length ? [...myPairs].sort((a,b)=> a.rate-b.rate || a.wins-b.wins)[0] : null;
+
+  detailBox.innerHTML = `
+    <div id="memberStatsImage" class="bg-white rounded-2xl p-5 shadow border-2 border-purple-300">
+      <h3 class="text-xl font-extrabold text-center mb-1">⛳ 일스클럽 쫄깃한판</h3>
+      <p class="text-base text-gray-500 text-center mb-4">${escapeHtml(label)}님 개인 통계</p>
+
+      <div class="space-y-1 mb-3 text-base">
+        <div class="flex justify-between"><span class="text-gray-600">기간내 참가대회</span><span class="font-bold">${events.length}회</span></div>
+        <div class="flex justify-between"><span class="text-gray-600">조별경기 승리조 횟수</span><span class="font-bold">${winCount}회 (${winRate.toFixed(1)}%)</span></div>
+        ${grossRange!=null ? `<div class="flex justify-between"><span class="text-gray-600">기간내 타수 변동폭</span><span class="font-bold">${grossRange.toFixed(1)}타</span></div>` : ''}
+        ${hcRange!=null ? `<div class="flex justify-between"><span class="text-gray-600">기간내 핸디캡 변동폭</span><span class="font-bold">${hcRange.toFixed(1)}</span></div>` : ''}
+        ${topPartner ? `<div class="flex justify-between"><span class="text-gray-600">기간내 최다 같은 조원(인연)</span><span class="font-bold">${escapeHtml(data.idByName[topPartner]||topPartner)} (${partnerCount[topPartner]}회)</span></div>` : ''}
+        ${bestPair ? `<div class="flex justify-between"><span class="text-gray-600">기간내 환상의 짝꿍</span><span class="font-bold">${escapeHtml(bestPair.partnerLabel)} (승률 ${bestPair.rate.toFixed(1)}%)</span></div>` : ''}
+        ${worstPair ? `<div class="flex justify-between"><span class="text-gray-600">기간내 환장의 짝꿍</span><span class="font-bold">${escapeHtml(worstPair.partnerLabel)} (승률 ${worstPair.rate.toFixed(1)}%)</span></div>` : ''}
+      </div>
+
+      <p class="text-base font-extrabold mb-2 border-t pt-3">대회별 기록</p>
+      <div class="space-y-2">
+        ${events.map(e=>`
+          <div class="border-2 border-gray-100 rounded-lg px-3 py-2">
+            <div class="flex justify-between items-center">
+              <span class="font-bold">${escapeHtml(e.title)}</span>
+              <span class="text-sm text-gray-500">${e.dateLabel}</span>
+            </div>
+            <div class="text-sm text-gray-600 mt-1">
+              당시 핸디 ${e.handicap.toFixed(1)}
+              ${e.gross!=null ? ` · ${formatScore(e.gross)}(미적용) / ${formatScore(e.net)}(적용)` : ' · 스코어 미입력'}
+              ${e.won ? ' · 🏆 승리조' : ''}
+            </div>
+            <div class="text-sm text-gray-500 mt-1">같은 조원: ${e.groupmates.length ? e.groupmates.map(g=>escapeHtml(data.idByName[g]||g)).join(', ') : '-'}</div>
+          </div>`).join('')}
+      </div>
+    </div>
+    <button onclick="downloadElementAsImage('memberStatsImage', '${escapeAttr(label)}_개인통계.png', this)" class="btn-primary w-full bg-purple-700 text-white py-4 rounded-xl active:bg-purple-900 mt-3">
+      🖼️ 개인 통계 이미지로 저장
+    </button>
+  `;
+}
+
 
 let lastStatsData = null;
 const STAT_SECTIONS = [
@@ -1043,11 +1283,18 @@ const STAT_SECTIONS = [
       <div class="flex justify-between items-center py-1 text-base">
         <span>${escapeHtml(r.id||r.name)}</span>
         <span>승률 ${r.rate.toFixed(1)}% (${r.wins}/${r.played}회)</span>
+      </div>`).join('') : '<p class="text-gray-400 text-center py-2">기록이 없습니다.</p>' },
+  { key: 'clubRecords', emoji: '🏌️', title: '기간별 클럽 기록 (대회별 순위·조편성)', color: 'gray',
+    render: d => d.clubRecords && d.clubRecords.length ? d.clubRecords.map(ev=>`
+      <div class="mb-2 pb-2 border-b border-gray-200 last:border-b-0">
+        <p class="text-base font-bold">${escapeHtml(ev.title)} <span class="text-sm text-gray-500 font-normal">(${ev.dateLabel})</span></p>
+        ${ev.ranking.length ? `<div class="text-sm text-gray-700 mt-1">${ev.ranking.map((r,i)=>`${i+1}.${escapeHtml(r.id||r.name)} ${formatScore(r.net)}`).join(' · ')}</div>` : ''}
+        ${ev.groups ? `<div class="text-sm text-gray-500 mt-1">${ev.groups.map((g,gi)=>`${gi+1}조: ${g.map(n=>escapeHtml(n)).join(', ')}`).join(' / ')}</div>` : ''}
       </div>`).join('') : '<p class="text-gray-400 text-center py-2">기록이 없습니다.</p>' }
 ];
 
 function renderStatsResult(statsData){
-  const box = document.getElementById('statsResult');
+  const box = document.getElementById('clubStatsResult');
   box.innerHTML = `
     <p class="text-sm text-gray-500 mb-3">집계 대상: 대회 ${statsData.eventCount}개 · 체크한 항목만 아래 "이미지로 저장"에 포함됩니다.</p>
 
@@ -1064,20 +1311,6 @@ function renderStatsResult(statsData){
       🖼️ 체크한 통계 이미지로 저장 (카톡 공유용)
     </button>
     <div id="statsExportArea" class="bg-white rounded-2xl p-5 shadow border-2 border-gray-300"></div>
-
-    <p class="text-lg font-extrabold mb-2 mt-5">🏌️ 기간별 클럽 기록 (대회별 순위·조편성)</p>
-    ${statsData.clubRecords && statsData.clubRecords.length ? statsData.clubRecords.map(ev=>`
-      <div class="bg-gray-50 border-2 border-gray-300 rounded-xl p-3 mb-3">
-        <p class="text-base font-extrabold mb-1">${escapeHtml(ev.title)} <span class="text-xs text-gray-500 font-normal">(${ev.dateLabel})</span></p>
-        ${ev.ranking.length ? `
-        <p class="text-sm font-bold text-gray-600 mt-2 mb-1">핸디적용타수 순위</p>
-        <div class="text-sm text-gray-700">${ev.ranking.map((r,i)=>`${i+1}. ${escapeHtml(r.id||r.name)} ${formatScore(r.net)}`).join(' · ')}</div>
-        ` : ''}
-        ${ev.groups ? `
-        <p class="text-sm font-bold text-gray-600 mt-2 mb-1">조편성</p>
-        <div class="text-sm text-gray-700">${ev.groups.map((g,gi)=>`${gi+1}조: ${g.map(n=>escapeHtml(n)).join(', ')}`).join(' / ')}</div>
-        ` : ''}
-      </div>`).join('') : '<p class="text-gray-400 text-center py-2">기록이 없습니다.</p>'}
   `;
   renderStatsExportPreview();
 }
