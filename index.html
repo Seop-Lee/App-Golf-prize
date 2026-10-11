@@ -37,7 +37,7 @@
       입장하기
     </button>
     <p id="roomGateMsg" class="text-red-600 text-sm mt-3 text-center"></p>
-    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-10-11-v50</p>
+    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-10-11-v51</p>
   </div>
 </div>
 
@@ -510,6 +510,7 @@ let luckyCount = 2;      // 행운상 추첨 인원수
 let groupPrizeOverride = {}; // { 그룹인덱스: 1인당금액 } 총무가 수동으로 고친 조별 상금
 let groupPrizeEditMode = false; // '상금 수정' 화면 열림/닫힘 (로컬 상태, 저장 안 함)
 let shareOptions = { nearPin: true, lucky: true, money: true }; // 결과 배포 텍스트에 포함할 항목
+let excludedGroups = []; // 내기 제외 조 인덱스 (조 순위·조 상금에서 빠짐)
 let groupSyncMode = 'manual'; // 'manual'=수동 조편성 우선 / 'reset'=변경시 자동 재편성
 let forbiddenPairs = []; // [[이름1,이름2], ...] 같은 조 금지 조합 (총무가 참가자 명단에서 선택)
 let lockPin = '';        // 잠금 해제용 4자리 비밀번호 (2020은 항상 통하는 마스터 비밀번호)
@@ -834,7 +835,7 @@ function calcMoneyForEvent(data){
     const scored = g.filter(p=>scoresObj[p.name]!=null);
     const avgNet = scored.length ? scored.reduce((s,p)=>s+netScore(p),0)/scored.length : null;
     return { groupIndex: gi, members: g, avgNet, hio: hioByGroup[gi]||0 };
-  }).filter(x=> x.avgNet!=null || x.hio>0);
+  }).filter(x=> !(data.excludedGroups||[]).includes(x.groupIndex)).filter(x=> x.avgNet!=null || x.hio>0);
   const hioGroups = groupsInfo.filter(x=>x.hio>0).sort((a,b)=>b.hio-a.hio);
   const normalGroups = groupsInfo.filter(x=>x.hio===0).sort((a,b)=>a.avgNet-b.avgNet);
   const groupRanking = [...hioGroups, ...normalGroups];
@@ -900,7 +901,7 @@ function computeEventGroupRankingForStats(data){
     const scored = g.filter(p=>scoresObj[p.name]!=null);
     const avgNet = scored.length ? scored.reduce((s,p)=>s+netScore(p),0)/scored.length : null;
     return { groupIndex: gi, members: g, avgNet, hio: hioByGroup[gi]||0 };
-  }).filter(x=>x.avgNet!=null || x.hio>0);
+  }).filter(x=> !(data.excludedGroups||[]).includes(x.groupIndex)).filter(x=>x.avgNet!=null || x.hio>0);
   const hioGroups = groupsInfo.filter(x=>x.hio>0).sort((a,b)=>b.hio-a.hio);
   const normalGroups = groupsInfo.filter(x=>x.hio===0).sort((a,b)=>a.avgNet-b.avgNet);
   return [...hioGroups, ...normalGroups];
@@ -1385,7 +1386,7 @@ function createEvent(){
       groupSize: 4, feePerPerson: 5000, prizeRules: defaultPrizeRules(),
       holeInOnes: [], locked: false, lockPin: '', luckyCount: 2, groupPrizeOverride: {},
       shareOptions: { nearPin: true, lucky: true, money: true },
-      scoreIsRaw: {}, forbiddenPairs: [], groupSyncMode: 'manual'
+      scoreIsRaw: {}, forbiddenPairs: [], groupSyncMode: 'manual', excludedGroups: []
     });
     const timeoutPromise = new Promise((_, reject)=>
       setTimeout(()=> reject(new Error('네트워크 응답이 너무 오래 걸립니다. 인터넷 연결/Firestore 설정을 확인해 주세요.')), 8000)
@@ -1541,6 +1542,7 @@ function attachEventListener(){
     groupPrizeOverride = data.groupPrizeOverride || {};
     shareOptions = data.shareOptions || { nearPin: true, lucky: true, money: true };
     forbiddenPairs = data.forbiddenPairs || [];
+    excludedGroups = data.excludedGroups || [];
     groupSyncMode = data.groupSyncMode === 'reset' ? 'reset' : 'manual';
     renderGroupSyncModeButtons();
 
@@ -2429,6 +2431,15 @@ function setGroupSize(n){
   renderGroupSizeButtons();
 }
 
+function toggleExcludeGroup(gi){
+  if(checkLocked()) return;
+  const i = excludedGroups.indexOf(gi);
+  if(i>=0) excludedGroups.splice(i,1); else excludedGroups.push(gi);
+  pushState({ excludedGroups });
+  renderGroups();
+  if(typeof renderMoney === 'function' && !document.getElementById('tab-money').classList.contains('hidden')) renderMoney();
+}
+
 function renderGroupSyncModeButtons(){
   const m = document.getElementById('gsm-manual'), r = document.getElementById('gsm-reset');
   if(!m || !r) return;
@@ -2487,6 +2498,7 @@ function groupsAfterRemove(name){
   if(groupSyncMode==='reset'){ scheduleRegroup(); return; }
   if(!currentGroups.some(g=>g.some(x=>x.name===name))) return;
   const next = currentGroups.map(g=>g.filter(x=>x.name!==name)).filter(g=>g.length>0);
+  if(next.length !== currentGroups.length){ excludedGroups = []; pushState({ excludedGroups }); }
   currentGroups = next.length ? next : null;
   pushState({ groups: currentGroups ? currentGroups.map(g=>({ members: g })) : null });
 }
@@ -2760,6 +2772,8 @@ async function autoGroup(){
     groups = enforceHardSeparation(groups, hardPairsResolved); // ③ 절대 규칙은 마지막에 강제
     groups = balanceGroups(groups, TARGET_GAP, avoidSet, hardPairsResolved); // ④ 하드 분리로 흔들렸을 균형을 한 번 더 조정(금지 조합은 계속 존중)
     currentGroups = groups;
+    excludedGroups = [];
+    pushState({ excludedGroups });
 
     // Firestore는 배열 안에 배열을 직접 저장할 수 없어(중첩 배열 미지원),
     // 각 조를 { members: [...] } 형태로 감싸서 저장합니다.
@@ -2866,8 +2880,9 @@ ${groupSummaryLines}`;
     <div class="bg-white rounded-2xl p-4 shadow border-2 border-blue-300">
       <div class="flex justify-between items-center mb-2">
         <h3 class="text-xl font-extrabold text-blue-800">${gi+1}조 (${g.length}명)</h3>
-        ${isViewer ? '' : `<span class="text-base font-bold bg-blue-100 text-blue-800 px-3 py-1 rounded-lg">평균 핸디 ${avg}</span>`}
+        ${isViewer ? (excludedGroups.includes(gi) ? '<span class="text-sm font-bold bg-gray-200 text-gray-600 px-3 py-1 rounded-lg">내기 제외</span>' : '') : `<span class="text-base font-bold bg-blue-100 text-blue-800 px-3 py-1 rounded-lg">평균 핸디 ${avg}</span>`}
       </div>
+      ${isViewer ? '' : `<button onclick="toggleExcludeGroup(${gi})" class="w-full mb-2 py-2 rounded-xl text-base font-bold border-2 ${excludedGroups.includes(gi) ? 'bg-gray-700 text-white border-gray-700' : 'bg-white text-gray-700 border-gray-300'}">${excludedGroups.includes(gi) ? '🚫 내기 제외됨 (눌러서 취소)' : '내기 제외'}</button>`}
       <div class="space-y-2">
         ${g.map(p=>`
           <div class="flex items-center justify-between gap-2 border-b border-gray-100 py-2">
@@ -3139,7 +3154,7 @@ function computeWinners(){
     const avgNet = scored.length ? scored.reduce((s,p)=> s + netScore(p), 0) / scored.length : null;
     const memberDetails = scored.map(p => ({ name: p.name, id: p.id, gross: scores[p.name], handicap: p.handicap, net: netScore(p) }));
     return { groupIndex: gi, members: g, memberDetails, avgNet, scoredCount: scored.length, totalCount: g.length, hio: holeInOneAmountByGroup[gi] || 0 };
-  }).filter(x => x.avgNet != null || x.hio > 0);
+  }).filter(x => !excludedGroups.includes(x.groupIndex)).filter(x => x.avgNet != null || x.hio > 0);
 
   const hioGroups = allGroupsInfo.filter(x => x.hio > 0).sort((a,b)=> b.hio - a.hio);
   const normalGroups = allGroupsInfo.filter(x => x.hio === 0).sort((a,b)=> a.avgNet - b.avgNet);
