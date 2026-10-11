@@ -37,7 +37,7 @@
       입장하기
     </button>
     <p id="roomGateMsg" class="text-red-600 text-sm mt-3 text-center"></p>
-    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-10-11-v51</p>
+    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-10-11-v52</p>
   </div>
 </div>
 
@@ -516,6 +516,18 @@ let forbiddenPairs = []; // [[이름1,이름2], ...] 같은 조 금지 조합 (�
 let lockPin = '';        // 잠금 해제용 4자리 비밀번호 (2020은 항상 통하는 마스터 비밀번호)
 let memberEditUnlocked = false; // 회원 모드에서 '내 정보 수정' 잠금 해제 여부 (로컬 상태, 저장 안 함)
 
+// 내기 제외 조에 속한 사람 이름 목록
+function excludedPlayerNames(){
+  const set = new Set();
+  (excludedGroups||[]).forEach(gi=>{ if(currentGroups && currentGroups[gi]) currentGroups[gi].forEach(p=>set.add(p.name)); });
+  return set;
+}
+// 참가비를 내는 인원 (내기 제외 조 인원은 뺌)
+function payingCount(){
+  const ex = excludedPlayerNames();
+  return today.filter(p=>!ex.has(p.name)).length;
+}
+
 function roundTo1000(x){ return Math.round(x/1000)*1000; }
 
 const PAR = 72; // 기준 타수 (과부족 계산용)
@@ -791,7 +803,9 @@ function calcMoneyForEvent(data){
   const luckyArr = data.luckyWinners || null;
   const holeInOnesArr = data.holeInOnes || [];
 
-  const totalPot = todayArr.length * fee;
+  const exNames = new Set();
+  (data.excludedGroups||[]).forEach(gi=>{ if(groupsArr && groupsArr[gi]) groupsArr[gi].forEach(p=>exNames.add(p.name)); });
+  const totalPot = todayArr.filter(p=>!exNames.has(p.name)).length * fee;
   const overallPrize = roundTo1000(totalPot * (rules.overallPct/100));
   const groupPrizeTotal = roundTo1000(totalPot * (rules.groupPct/100));
   const eventPrize = Math.max(0, totalPot - overallPrize - groupPrizeTotal);
@@ -1708,7 +1722,7 @@ function updateFee(val){
   if(checkLocked()) return;
   const v = parseInt(val, 10);
   feePerPerson = isNaN(v) ? 0 : v;
-  document.getElementById('totalFeePreview').textContent = (today.length*feePerPerson).toLocaleString()+'원';
+  document.getElementById('totalFeePreview').textContent = (payingCount()*feePerPerson).toLocaleString()+'원';
   clearTimeout(feeDebounce);
   feeDebounce = setTimeout(()=> pushState({ feePerPerson }), 400);
 }
@@ -1729,7 +1743,7 @@ function updateHandicap(i, val){
   const magnitude = (isNaN(v) || v <= 0) ? 0 : Math.round(v*10)/10;
   const sign = (today[i].handicap < 0) ? -1 : 1;
   today[i].handicap = magnitude === 0 ? 0 : sign * magnitude;
-  document.getElementById('totalFeePreview').textContent = (today.length*feePerPerson).toLocaleString()+'원';
+  document.getElementById('totalFeePreview').textContent = (payingCount()*feePerPerson).toLocaleString()+'원';
   clearTimeout(handicapDebounce[i]);
   todayPushPending = true;
   handicapDebounce[i] = setTimeout(()=>{
@@ -1914,7 +1928,7 @@ function clearToday(){
 function renderToday(){
   const list = document.getElementById('todayList');
   document.getElementById('todayCount').textContent = today.length;
-  document.getElementById('totalFeePreview').textContent = (today.length*feePerPerson).toLocaleString()+'원';
+  document.getElementById('totalFeePreview').textContent = (payingCount()*feePerPerson).toLocaleString()+'원';
   const feeInputEl = document.getElementById('feeInput');
   if(feeInputEl && document.activeElement !== feeInputEl) feeInputEl.value = feePerPerson;
 
@@ -3162,7 +3176,15 @@ function computeWinners(){
 
   const nearPinsList = (nearPins || []).filter(n => n);
 
-  return { overall, groupRanking, nearPins: nearPinsList, fullRanking: ranked };
+  const excludedRanking = (currentGroups || []).map((g, gi)=>{
+    if(!excludedGroups.includes(gi)) return null;
+    const scored = g.filter(p => scores[p.name] != null);
+    const avgNet = scored.length ? scored.reduce((s2,p)=> s2 + netScore(p), 0) / scored.length : null;
+    const memberDetails = scored.map(p => ({ name: p.name, id: p.id, net: netScore(p) }));
+    return { groupIndex: gi, members: g, memberDetails, avgNet, scoredCount: scored.length, totalCount: g.length };
+  }).filter(x=>x).sort((a,b)=> (a.avgNet==null) - (b.avgNet==null) || a.avgNet - b.avgNet);
+
+  return { overall, groupRanking, excludedRanking, nearPins: nearPinsList, fullRanking: ranked };
 }
 
 /* ===================== 상금 배분 규칙 ===================== */
@@ -3394,9 +3416,10 @@ function handicapBasisText(gross, handicap, isRaw){
 }
 
 function computeMoney(){
-  const n = today.length;
+  const n = payingCount();
+  const nAll = today.length;
   const box = document.getElementById('moneyResult');
-  if(n===0){
+  if(nAll===0){
     box.innerHTML = '<p class="text-center text-gray-400 py-6">참가자를 먼저 추가해 주세요.</p>';
     return;
   }
@@ -3533,7 +3556,9 @@ function computeMoney(){
   const luckyPoolAmount = Math.max(0, totalPot - actualOverallSum - actualGroupSum - actualNearPinSum);
   const overBudget = (actualOverallSum + actualGroupSum + actualNearPinSum) > totalPot;
   const overBudgetAmount = overBudget ? (actualOverallSum + actualGroupSum + actualNearPinSum - totalPot) : 0;
+  const exSet = excludedPlayerNames();
   const eligibleForLucky = today
+    .filter(p=> !exSet.has(p.name))
     .filter(p=>{
       const m = memberPrize[p.name];
       return (m.overall + m.group + m.nearPin) === 0;
@@ -3570,11 +3595,16 @@ function computeMoney(){
     ? luckyWinners.map(name => `${displayLabel(name)} ${(luckyEachMap[name]||0).toLocaleString()}원`).join(', ')
     : '(미추첨)';
 
+  const excludedLines = (winners.excludedRanking||[]).map(gr=>
+    `  ${gr.groupIndex+1}조 (평균 ${gr.avgNet!=null ? formatScoreAvg(gr.avgNet) : '스코어 미입력'}, ${gr.scoredCount}/${gr.totalCount}명 입력): ${gr.members.map(p=>p.id||p.name).join(', ')}`
+    + (gr.memberDetails.length ? `\n      근거: ${gr.memberDetails.map(m=>`${m.id||m.name} ${formatScore(m.net)}`).join(', ')}` : '')
+  );
+
   const shareText =
 `⛳ 일스클럽 쫄깃한판 결과 (${dateStr})
 ------------------------------
-참가 인원: ${n}명${shareOptions.money ? `
-참가비: 1인 ${feePerPerson.toLocaleString()}원 × ${n}명 = ${totalPot.toLocaleString()}원` : ''}
+참가 인원: ${nAll}명${shareOptions.money ? `
+참가비: 1인 ${feePerPerson.toLocaleString()}원 × ${n}명 = ${totalPot.toLocaleString()}원${nAll!==n ? ` (내기 제외 ${nAll-n}명 제외)` : ''}` : ''}
 ------------------------------
 [조 편성]
 ${groupCompositionLines.length ? groupCompositionLines.join('\n') : '  (조편성 미실시)'}
@@ -3602,7 +3632,10 @@ ${holeInOneLines.length ? holeInOneLines.join('\n') : '  (홀인원 없음)'}${s
 [회원별 최종 상금]
 ${memberTableText}
 ------------------------------
-총 상금 합계: ${totalPot.toLocaleString()}원 (참가비 총액과 정확히 일치, 홀인원은 별도 기록)` : ''}`;
+총 상금 합계: ${totalPot.toLocaleString()}원 (참가비 총액과 정확히 일치, 홀인원은 별도 기록)` : ''}${excludedLines.length ? `
+------------------------------
+[내기 제외 조 성적 — 순위·상금 대상 아님]
+${excludedLines.join('\n')}` : ''}`;
 
   box.innerHTML = `
     ${overBudget ? `
@@ -3612,7 +3645,7 @@ ${memberTableText}
     </div>` : ''}
     <div class="bg-white rounded-2xl p-4 shadow border-2 border-orange-300 space-y-3">
       <div class="grid grid-cols-1 gap-2">
-        <div class="flex justify-between text-lg py-2 border-b"><span class="font-bold">참가 인원</span><span>${n}명</span></div>
+        <div class="flex justify-between text-lg py-2 border-b"><span class="font-bold">참가 인원</span><span>${nAll}명${nAll!==n ? ` (참가비 대상 ${n}명)` : ''}</span></div>
         <div class="flex justify-between text-lg py-2 border-b"><span class="font-bold">참가비 총액</span><span class="font-extrabold text-orange-700">${totalPot.toLocaleString()}원</span></div>
         ${showOverall ? `<div class="flex justify-between text-lg py-2 border-b"><span class="font-bold">① 개인전 상금 (${prizeRules.overallPct}%)</span><span>${actualOverallSum.toLocaleString()}원</span></div>` : ''}
         ${showGroup ? `<div class="flex justify-between text-lg py-2 border-b"><span class="font-bold">② 조별 경쟁 상금 (${prizeRules.groupPct}%)</span><span>${actualGroupSum.toLocaleString()}원</span></div>` : ''}
@@ -3785,6 +3818,23 @@ ${memberTableText}
           </div>`).join('')}
       </div>
     </div>
+
+    ${(winners.excludedRanking||[]).length ? `
+    <div class="bg-gray-50 rounded-2xl p-4 shadow border-2 border-gray-300">
+      <h3 class="text-xl font-extrabold mb-1">🚫 내기 제외 조 성적</h3>
+      <p class="text-sm text-gray-500 mb-2">조 순위·상금 대상은 아니며, 성적만 참고용으로 표시합니다.</p>
+      <div class="space-y-2">
+        ${winners.excludedRanking.map(gr=>`
+          <div class="border-2 border-gray-200 bg-white rounded-xl px-4 py-3">
+            <div class="flex justify-between items-center">
+              <span class="text-lg font-bold">${gr.groupIndex+1}조</span>
+              <span class="text-base font-bold text-gray-700">${gr.avgNet!=null ? formatScoreAvg(gr.avgNet) : '스코어 미입력'}</span>
+            </div>
+            <div class="text-sm text-gray-500 mt-1">${gr.members.map(p=>escapeHtml(p.id||p.name)).join(', ')} (스코어 입력 ${gr.scoredCount}/${gr.totalCount}명)</div>
+            ${gr.memberDetails.length ? `<div class="text-xs text-gray-400 mt-1">근거: ${gr.memberDetails.map(m=>`${escapeHtml(m.id||m.name)} ${formatScore(m.net)}`).join(', ')}</div>` : ''}
+          </div>`).join('')}
+      </div>
+    </div>` : ''}
 
     <div class="bg-gray-900 rounded-2xl p-4 shadow">
       <p class="text-white text-lg font-extrabold mb-2">📋 공유용 결과</p>
