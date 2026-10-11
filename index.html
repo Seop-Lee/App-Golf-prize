@@ -37,7 +37,7 @@
       입장하기
     </button>
     <p id="roomGateMsg" class="text-red-600 text-sm mt-3 text-center"></p>
-    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-08-18-v49</p>
+    <p class="text-gray-300 text-xs mt-4 text-center">버전: 2026-10-11-v50</p>
   </div>
 </div>
 
@@ -297,6 +297,14 @@
           <button id="gs-4" onclick="setGroupSize(4)" class="group-size-btn py-3 rounded-xl text-lg font-bold border-2">4명</button>
           <button id="gs-5" onclick="setGroupSize(5)" class="group-size-btn py-3 rounded-xl text-lg font-bold border-2">5명</button>
         </div>
+        <div class="mb-3 p-3 rounded-xl bg-gray-50 border-2 border-gray-200">
+          <p class="text-sm font-bold mb-2">참가자·핸디캡이 바뀌면?</p>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="gsm-manual" onclick="setGroupSyncMode('manual')" class="py-3 rounded-xl text-base font-bold border-2">✋ 수동 조편성 우선</button>
+            <button id="gsm-reset" onclick="setGroupSyncMode('reset')" class="py-3 rounded-xl text-base font-bold border-2">🔄 기존 조편성 리셋</button>
+          </div>
+          <p id="gsmDesc" class="text-xs text-gray-500 mt-2"></p>
+        </div>
         <button id="autoGroupBtn" onclick="autoGroup()" class="btn-primary w-full bg-blue-700 text-white py-4 rounded-xl active:bg-blue-900">
           🔀 조편성 시작
         </button>
@@ -502,6 +510,7 @@ let luckyCount = 2;      // 행운상 추첨 인원수
 let groupPrizeOverride = {}; // { 그룹인덱스: 1인당금액 } 총무가 수동으로 고친 조별 상금
 let groupPrizeEditMode = false; // '상금 수정' 화면 열림/닫힘 (로컬 상태, 저장 안 함)
 let shareOptions = { nearPin: true, lucky: true, money: true }; // 결과 배포 텍스트에 포함할 항목
+let groupSyncMode = 'manual'; // 'manual'=수동 조편성 우선 / 'reset'=변경시 자동 재편성
 let forbiddenPairs = []; // [[이름1,이름2], ...] 같은 조 금지 조합 (총무가 참가자 명단에서 선택)
 let lockPin = '';        // 잠금 해제용 4자리 비밀번호 (2020은 항상 통하는 마스터 비밀번호)
 let memberEditUnlocked = false; // 회원 모드에서 '내 정보 수정' 잠금 해제 여부 (로컬 상태, 저장 안 함)
@@ -1024,9 +1033,9 @@ async function gatherStatsData(startDate, endDate){
   }).sort((a,b)=> b.rate - a.rate);
 
   // ② 내가 젤 잘나가 Top5 (승률 높은 순)
-  const topWinners = [...memberStats].sort((a,b)=> b.rate - a.rate || b.wins - a.wins).slice(0,5);
+  const topWinners = memberStats.filter(m=>m.played>=2).sort((a,b)=> b.rate - a.rate || b.wins - a.wins).slice(0,5);
   // ③ 내가 젤 안나가 Top5 (승률 낮은 순)
-  const bottomWinners = [...memberStats].sort((a,b)=> a.rate - b.rate || a.wins - b.wins).slice(0,5);
+  const bottomWinners = memberStats.filter(m=>m.played>=2).sort((a,b)=> a.rate - b.rate || a.wins - b.wins).slice(0,5);
 
   // ④ 인연 Top3
   const pairTop3 = Object.keys(pairTotalCount)
@@ -1034,7 +1043,7 @@ async function gatherStatsData(startDate, endDate){
     .sort((a,b)=> b.count - a.count).slice(0,3);
 
   // ⑤⑥ 짝꿍 승률 (전체 조합)
-  const pairStatsAll = Object.keys(pairTotalCount).map(key=>{
+  const pairStatsAll = Object.keys(pairTotalCount).filter(key=> pairTotalCount[key] >= 2).map(key=>{
     const [n1,n2] = key.split('|');
     const total = pairTotalCount[key];
     const wins = pairWinCount[key] || 0;
@@ -1241,13 +1250,13 @@ const STAT_SECTIONS = [
       <div class="flex justify-between items-center py-1 ${i===0?'font-extrabold text-rose-700 text-lg':'text-base'}">
         <span>${i+1}위 ${escapeHtml(p.id1||p.n1)} ↔ ${escapeHtml(p.id2||p.n2)}</span>
         <span>승률 ${p.rate.toFixed(1)}% (${p.wins}회)</span>
-      </div>`).join('') : '<p class="text-gray-400 text-center py-2">기록이 없습니다.</p>' },
+      </div>`).join('') : '<p class="text-gray-400 text-center py-2">2회 이상 함께한 기록이 없습니다.</p>' },
   { key: 'worstDuo', emoji: '💔', title: '환장의 짝꿍 Top5', color: 'slate',
     render: d => d.worstDuo.length ? d.worstDuo.map((p,i)=>`
       <div class="flex justify-between items-center py-1 text-base">
         <span>${i+1}위 ${escapeHtml(p.id1||p.n1)} ↔ ${escapeHtml(p.id2||p.n2)}</span>
         <span>승률 ${p.rate.toFixed(1)}%</span>
-      </div>`).join('') : '<p class="text-gray-400 text-center py-2">기록이 없습니다.</p>' },
+      </div>`).join('') : '<p class="text-gray-400 text-center py-2">2회 이상 함께한 기록이 없습니다.</p>' },
   { key: 'handicapKing', emoji: '👑', title: '핸디캡 왕 Top5 (핸디적용 평균)', color: 'blue',
     render: d => d.handicapKing.length ? d.handicapKing.map((r,i)=>`
       <div class="flex justify-between items-center py-1 ${i===0?'font-extrabold text-blue-700 text-lg':'text-base'}">
@@ -1376,7 +1385,7 @@ function createEvent(){
       groupSize: 4, feePerPerson: 5000, prizeRules: defaultPrizeRules(),
       holeInOnes: [], locked: false, lockPin: '', luckyCount: 2, groupPrizeOverride: {},
       shareOptions: { nearPin: true, lucky: true, money: true },
-      scoreIsRaw: {}, forbiddenPairs: []
+      scoreIsRaw: {}, forbiddenPairs: [], groupSyncMode: 'manual'
     });
     const timeoutPromise = new Promise((_, reject)=>
       setTimeout(()=> reject(new Error('네트워크 응답이 너무 오래 걸립니다. 인터넷 연결/Firestore 설정을 확인해 주세요.')), 8000)
@@ -1532,6 +1541,8 @@ function attachEventListener(){
     groupPrizeOverride = data.groupPrizeOverride || {};
     shareOptions = data.shareOptions || { nearPin: true, lucky: true, money: true };
     forbiddenPairs = data.forbiddenPairs || [];
+    groupSyncMode = data.groupSyncMode === 'reset' ? 'reset' : 'manual';
+    renderGroupSyncModeButtons();
 
     renderToday();
     renderGroups();
@@ -1682,9 +1693,12 @@ function addParticipant(){
   if(!name){ alert('회원을 선택해 주세요.'); return; }
   if(today.find(p=>p.name===name)){ alert('이미 추가된 참가자입니다.'); return; }
   const matched = members.map(normalizeMember).find(m=>m.name===name);
-  today.push({ name, id: matched ? matched.id : '', handicap: matched ? (matched.handicap || 0) : 0 });
+  const np = { name, id: matched ? matched.id : '', handicap: matched ? (matched.handicap || 0) : 0 };
+  today.push(np);
   pushState({ today });
+  groupsAfterAdd({ ...np });
   renderToday();
+  renderGroups();
 }
 
 let feeDebounce = null;
@@ -1699,9 +1713,11 @@ function updateFee(val){
 
 function removeParticipant(i){
   if(checkLocked()) return;
-  today.splice(i,1);
+  const removed = today.splice(i,1)[0];
   pushState({ today });
+  if(removed) groupsAfterRemove(removed.name);
   renderToday();
+  renderGroups();
 }
 
 let handicapDebounce = {};
@@ -1756,6 +1772,7 @@ function syncHandicapToCurrentGroups(name, handicap){
   if(changed){
     pushState({ groups: currentGroups.map(g => ({ members: g })) });
     if(!document.getElementById('tab-groups').classList.contains('hidden')) renderGroups();
+    if(groupSyncMode==='reset') scheduleRegroup();
   }
 }
 
@@ -1774,6 +1791,7 @@ function syncHandicapMapToCurrentGroups(nameToHandicap){
   if(changed){
     pushState({ groups: currentGroups.map(g => ({ members: g })) });
     if(!document.getElementById('tab-groups').classList.contains('hidden')) renderGroups();
+    if(groupSyncMode==='reset') scheduleRegroup();
   }
 }
 
@@ -2409,6 +2427,68 @@ function setGroupSize(n){
   groupSize = n;
   pushState({ groupSize: n });
   renderGroupSizeButtons();
+}
+
+function renderGroupSyncModeButtons(){
+  const m = document.getElementById('gsm-manual'), r = document.getElementById('gsm-reset');
+  if(!m || !r) return;
+  const on = 'py-3 rounded-xl text-base font-bold border-2 bg-blue-700 text-white border-blue-700';
+  const off = 'py-3 rounded-xl text-base font-bold border-2 bg-white text-gray-700 border-gray-300';
+  m.className = groupSyncMode==='manual' ? on : off;
+  r.className = groupSyncMode==='reset' ? on : off;
+  const d = document.getElementById('gsmDesc');
+  if(d) d.textContent = groupSyncMode==='manual'
+    ? '손으로 고친 조편성은 그대로 두고, 추가·삭제·핸디 변경된 분만 반영합니다.'
+    : '참가자나 핸디캡이 바뀌면 조편성을 처음부터 자동으로 다시 짭니다.';
+}
+function setGroupSyncMode(mode){
+  if(checkLocked()) return;
+  groupSyncMode = mode === 'reset' ? 'reset' : 'manual';
+  pushState({ groupSyncMode });
+  renderGroupSyncModeButtons();
+}
+
+let regroupTimer = null;
+function scheduleRegroup(){
+  clearTimeout(regroupTimer);
+  regroupTimer = setTimeout(()=>{
+    if(groupSyncMode!=='reset' || !currentGroups || today.length<3 || locked) return;
+    const btn = document.getElementById('autoGroupBtn');
+    if(btn && btn.disabled){ scheduleRegroup(); return; }
+    autoGroup();
+  }, 1500);
+}
+function groupsAfterAdd(p){
+  if(!currentGroups || currentGroups.length===0) return;
+  if(currentGroups.some(g=>g.some(x=>x.name===p.name))) return;
+  if(groupSyncMode==='reset'){ scheduleRegroup(); return; }
+  const hard = (forbiddenPairs||[]).filter(pr=> pr.includes(p.name));
+  const conflict = g => hard.some(pr=>{ const o = pr[0]===p.name?pr[1]:pr[0]; return g.some(x=>x.name===o); });
+  const idxs = currentGroups.map((g,i)=>i);
+  let cands = idxs.filter(i=> currentGroups[i].length < groupSize);
+  if(cands.length===0){
+    const minSize = Math.min(...currentGroups.map(g=>g.length));
+    cands = idxs.filter(i=> currentGroups[i].length === minSize);
+  }
+  const free = cands.filter(i=>!conflict(currentGroups[i]));
+  if(free.length>0) cands = free;
+  let best=-1, bestGap=Infinity;
+  cands.forEach(i=>{
+    const trial = currentGroups.map((g,gi)=> gi===i ? [...g, p] : g);
+    const gap = maxMinGap(trial);
+    if(gap < bestGap){ bestGap = gap; best = i; }
+  });
+  if(best<0) return;
+  currentGroups[best] = [...currentGroups[best], p];
+  pushState({ groups: currentGroups.map(g=>({ members: g })) });
+}
+function groupsAfterRemove(name){
+  if(!currentGroups) return;
+  if(groupSyncMode==='reset'){ scheduleRegroup(); return; }
+  if(!currentGroups.some(g=>g.some(x=>x.name===name))) return;
+  const next = currentGroups.map(g=>g.filter(x=>x.name!==name)).filter(g=>g.length>0);
+  currentGroups = next.length ? next : null;
+  pushState({ groups: currentGroups ? currentGroups.map(g=>({ members: g })) : null });
 }
 
 function renderGroupSizeButtons(){
